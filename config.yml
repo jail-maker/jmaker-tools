@@ -1,0 +1,4 @@
+---
+containersLocation: "jmaker/containers"
+packagesLocation: "jmaker/packages/All"
+specialSnapName: "forks"

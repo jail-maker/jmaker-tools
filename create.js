@@ -60,3 +60,4 @@ for (let index in manifest.building) {
 
 }
 
+zfs.snapshot(newDataset, config.specialSnapName);

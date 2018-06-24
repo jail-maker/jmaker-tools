@@ -2,9 +2,9 @@
 
 const fse = require('fs-extra');
 const path = require('path');
-const logsPool = require('../libs/logs-pool');
-const config = require('../libs/config');
 const CommandInterface = require('../libs/command-interface');
+const zfs = require('../libs/zfs');
+const uuid5 = require('uuid/v5');
 
 class WorkdirCommand extends CommandInterface {
 
@@ -14,7 +14,9 @@ class WorkdirCommand extends CommandInterface {
 
         let { manifest } = receiver;
         this._receiver = receiver;
-        this._workdir = manifest.workdir;
+        this._oldWorkdir = manifest.workdir;
+        this._workdir = null;
+        this._commitName= null;
 
     }
 
@@ -22,32 +24,36 @@ class WorkdirCommand extends CommandInterface {
 
         let {
             dataset,
+            datasetPath,
             index,
             manifest,
-            containerId,
             args = [],
         } = this._receiver;
 
-        let log = logsPool.get(containerId);
         let workdir = path.resolve(manifest.workdir, args);
-        let name = `${index} ${workdir} ${manifest.from}`;
+        let dir = path.join(datasetPath, workdir);
 
-        await dataset.commit(name, async _ => {
-
-            let dir = path.join(dataset.path, workdir);
-            console.log('workdir:', dir);
-            await fse.ensureDir(dir);
-
-        });
+        this._commitName = uuid5(dir, uuid5.DNS);
+        zfs.snapshot(dataset, this._commitName);
+        console.log('workdir:', dir);
+        await fse.ensureDir(dir);
 
         manifest.workdir = workdir;
+        this._workdir = workdir;
 
     }
 
     async unExec() {
 
-        let { manifest } = this._receiver;
-        manifest.workdir = this._workdir;
+        let { manifest, dataset } = this._receiver;
+        manifest.workdir = this._oldWorkdir;
+
+        if (this._commitName) {
+
+            zfs.rollback(this._commitName);
+            zfs.destroy(`${dataset}@${this._commitName}`);
+
+        }
 
     }
 

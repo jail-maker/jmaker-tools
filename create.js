@@ -32,6 +32,7 @@ const argv = yargs
 
 let file = path.resolve(argv.manifest);
 let manifest = ManifestFactory.fromYamlFile(file);
+let clonedManifest = manifest.clone();
 
 console.dir(manifest);
 
@@ -49,6 +50,7 @@ if (manifest.from) {
     if (!zfs.has(fromDataset))
         throw new Error(`dataset "${manifest.from}" not exists.`);
 
+    zfs.ensureSnapshot(fromDataset, config.specialSnapName);
     zfs.clone(fromDataset, config.specialSnapName, newDataset);
 
 } else {
@@ -62,15 +64,15 @@ let datasetPath = zfs.get(newDataset, 'mountpoint');
 
 (async _ => {
 
+    let invoker = new CommandInvoker;
+    let contextPath = path.join(datasetPath, '/media/context');
+
     {
         let src = path.resolve('./');
-        let dst = path.join(datasetPath, '/media/context');
 
-        await fse.ensureDir(dst);
-        mountNullfs(src, dst, ['ro']);
+        await fse.ensureDir(contextPath);
+        mountNullfs(src, contextPath, ['ro']);
     }
-
-    let invoker = new CommandInvoker;
 
     for (let index in manifest.building) {
 
@@ -80,18 +82,20 @@ let datasetPath = zfs.get(newDataset, 'mountpoint');
 
         let commandPath = `./builder-commands/${commandName}-command`;
         let CommandClass = require(commandPath);
-        console.log(commandPath)
-        // let command = new CommandClass({
-        //     index,
-        //     dataset: newDataset,
-        //     manifest,
-        //     args,
-        // });
+        let command = new CommandClass({
+            index,
+            dataset: newDataset,
+            datasetPath
+            context: contextPath,
+            manifest,
+            args,
+        });
 
-        // await invoker.submit(command);
+        await invoker.submit(command);
 
     }
 
+    umount(contextPath, true);
     zfs.snapshot(newDataset, config.specialSnapName);
 
 })();

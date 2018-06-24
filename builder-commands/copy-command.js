@@ -1,8 +1,9 @@
 'use strict';
 
 const path = require('path');
-const { copy, copySync } = require('fs-extra');
+const { copy, copySync, unlinkSync } = require('fs-extra');
 const CommandInterface = require('../libs/command-interface');
+const zfs = require('../libs/zfs');
 
 class CopyCommand extends CommandInterface {
 
@@ -11,7 +12,7 @@ class CopyCommand extends CommandInterface {
         super();
 
         this._receiver = receiver;
-        this._commitName = null;
+        this._copiedFile = null;
 
     }
 
@@ -19,38 +20,29 @@ class CopyCommand extends CommandInterface {
 
         let {
             dataset,
+            datasetPath,
             index,
             manifest,
             context,
             args,
-            containerId,
         } = this._receiver;
 
         if (typeof(args) === 'string') 
             args = [args, args];
 
-        // let name = `${index} ${args.join(' ')} ${manifest.name}`;
-        let name = `${index} ${args.join(' ')} ${containerId}`;
+        let [src, dst] = args;
 
-        this._commitName = dataset.lastSnapshot;
-        await dataset.commit(name, async _ => {
+        src = path.join(context, path.resolve('/', src));
+        dst = path.join(datasetPath, path.resolve(manifest.workdir, dst));
 
-            let [src, dst] = args;
-
-            src = path.join(context.path, path.resolve('/', src));
-            dst = path.join(dataset.path, path.resolve(manifest.workdir, dst));
-
-            copySync(src, dst);
-
-        });
+        copySync(src, dst);
+        this._copiedFile = dst;
 
     }
 
     async unExec() {
 
-        let { dataset } = this._receiver;
-
-        if (this._commitName) dataset.rollback(this._commitName);
+        if (this._copiedFile) unlinkSync(this._copiedFile);
 
     }
 

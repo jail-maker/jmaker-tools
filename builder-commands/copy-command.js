@@ -2,9 +2,6 @@
 
 const path = require('path');
 const { copy, copySync } = require('fs-extra');
-const logsPool = require('../libs/logs-pool');
-const chains = require('../libs/layers/chains');
-const config = require('../libs/config');
 const CommandInterface = require('../libs/command-interface');
 
 class CopyCommand extends CommandInterface {

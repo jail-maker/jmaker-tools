@@ -4,27 +4,6 @@ const { spawn, spawnSync } = require('child_process');
 
 class Zfs {
 
-    _checkPool(pool) {
-
-        let result = spawnSync('zpool', [
-            'list', '-o', 'name', '-H'
-        ]);
-
-        let pools = result.stdout
-            .toString()
-            .trim()
-            .split(/\n/);
-
-        if (pools.indexOf(pool) === -1) {
-
-            let msg = `Pool "${pool}" not found.\n`
-            msg += `Available pools: ${pools.join(', ')}`;
-            throw new Error(msg);
-
-        }
-
-    }
-
     create(name, options = {}) {
 
         options = Object.keys(options)
@@ -167,6 +146,25 @@ class Zfs {
         ]);
 
         return result.stdout.toString().trim();
+
+    }
+
+    ensureDataset(path) {
+
+        if (!this.has(path)) this.create(path);
+
+    }
+
+    ensureSnapshot(path, snapshot) {
+
+        let fullPath = `${path}@${snapshot}`;
+
+        let snapshots = this.list({
+            prefix: path,
+            type: 'snapshot',
+        });
+
+        if (!snapshots.includes(fullPath)) this.snapshot(path, snapshot);
 
     }
 

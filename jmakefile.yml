@@ -1,4 +1,5 @@
 ---
+name: "base"
 from: "freebsd-11.1"
 
 cpus: 1

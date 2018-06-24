@@ -161,7 +161,7 @@ class Zfs {
 
         let snapshots = this.list({
             prefix: path,
-            type: 'snapshot',
+            type: ['snapshot'],
         });
 
         if (!snapshots.includes(fullPath)) this.snapshot(path, snapshot);

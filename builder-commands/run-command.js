@@ -4,7 +4,7 @@ const { promisify } = require('util');
 const { spawn } = require('child_process');
 const { ensureDir } = require('fs-extra');
 const path = require('path');
-const uuid5 = require('uuid/v5');
+const uuidv5 = require('uuid/v5');
 const CommandInterface = require('../libs/command-interface');
 const zfs = require('../libs/zfs');
 
@@ -32,7 +32,7 @@ class RunCommand extends CommandInterface {
         let command = args;
         let env = Object.assign({}, process.env, manifest.env);
 
-        this._commitName = uuid5(command, uuid5.DNS);
+        this._commitName = uuidv5(command, uuidv5.DNS);
         zfs.snapshot(dataset, this._commitName);
 
         await (new Promise((res, rej) => {

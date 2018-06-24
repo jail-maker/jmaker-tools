@@ -3,14 +3,11 @@
 const { spawnSync } = require('child_process');
 const { ensureDir } = require('fs-extra');
 const path = require('path');
-const sha256 = require('js-sha256').sha256;
 const uuidv5 = require("uuid/v5");
-const config = require('../libs/config');
-const logsPool = require('../libs/logs-pool');
-const Dataset = require('../libs/layers/dataset');
 const mountNullfs = require('../libs/mount-nullfs');
 const umount = require('../libs/umount');
 const CommandInterface = require('../libs/command-interface');
+const config = require('../libs/config');
 
 class VolumeCommand extends CommandInterface {
 
@@ -40,13 +37,11 @@ class VolumeCommand extends CommandInterface {
 
         let {
             dataset,
+            datasetPath,
             manifest,
-            containerId,
             args = {},
-            scope,
         } = this._receiver;
 
-        let log = logsPool.get(containerId);
         let volumes = Dataset.createIfNotExists(config.volumesLocation);
 
         args = this._normalizeArgs(args);

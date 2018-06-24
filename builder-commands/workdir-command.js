@@ -4,7 +4,7 @@ const fse = require('fs-extra');
 const path = require('path');
 const CommandInterface = require('../libs/command-interface');
 const zfs = require('../libs/zfs');
-const uuid5 = require('uuid/v5');
+const uuidv5 = require('uuid/v5');
 
 class WorkdirCommand extends CommandInterface {
 
@@ -33,7 +33,7 @@ class WorkdirCommand extends CommandInterface {
         let workdir = path.resolve(manifest.workdir, args);
         let dir = path.join(datasetPath, workdir);
 
-        this._commitName = uuid5(dir, uuid5.DNS);
+        this._commitName = uuidv5(dir, uuidv5.DNS);
         zfs.snapshot(dataset, this._commitName);
         console.log('workdir:', dir);
         await fse.ensureDir(dir);

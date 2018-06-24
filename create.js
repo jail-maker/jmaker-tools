@@ -16,12 +16,9 @@ const mountNullfs= require('./libs/mount-nullfs');
 const mountFdescfs = require('./libs/mount-fdescfs');
 const mountProcfs = require('./libs/mount-procfs');
 const umount = require('./libs/umount');
+const config = require('./libs/config');
 
-
-const configFile = './config.yml';
-
-const configContent = fs.readFileSync(configFile, 'utf-8');
-const config = yaml.safeLoad(configContent);
+console.log(config);
 
 const argv = yargs
     .option('manifest', {
@@ -68,10 +65,36 @@ let datasetPath = zfs.get(newDataset, 'mountpoint');
     let contextPath = path.join(datasetPath, '/media/context');
 
     {
-        let src = path.resolve('./');
 
+        let dev = path.join(datasetPath, '/dev');
+        let fd = path.join(datasetPath, '/dev/fd');
+        let proc = path.join(datasetPath, '/proc');
+        let srcContextPath = path.resolve('./');
+
+        await fse.ensureDir(dev);
+        await fse.ensureDir(fd);
+        await fse.ensureDir(proc);
         await fse.ensureDir(contextPath);
-        mountNullfs(src, contextPath, ['ro']);
+
+        let exitHandler = _ => {
+
+            umount(dev, true);
+            umount(fd, true);
+            umount(proc, true);
+            umount(contextPath, true);
+
+        };
+
+        process.on('exit', exitHandler);
+        process.on('SIGINT', exitHandler);
+        process.on('SIGTERM', exitHandler);
+
+        mountDevfs(dev);
+        mountFdescfs(fd);
+        mountProcfs(proc);
+        mountNullfs(srcContextPath, contextPath, ['ro']);
+
+
     }
 
     for (let index in manifest.building) {
@@ -85,17 +108,16 @@ let datasetPath = zfs.get(newDataset, 'mountpoint');
         let command = new CommandClass({
             index,
             dataset: newDataset,
-            datasetPath
+            datasetPath,
             context: contextPath,
             manifest,
             args,
         });
 
-        await invoker.submit(command);
+        await invoker.submitOrUndoAll(command);
 
     }
 
-    umount(contextPath, true);
     zfs.snapshot(newDataset, config.specialSnapName);
 
 })();

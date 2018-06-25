@@ -55,6 +55,6 @@ const argv = yargs
 
     }
 
-    console.log(JSON.stringify(packageManifest));
+    console.log(JSON.stringify(packageManifest, null, 2));
 
 })().catch(error => { console.log(error); });

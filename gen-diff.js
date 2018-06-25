@@ -16,7 +16,7 @@ const config = yaml.safeLoad(configContent);
 
 const argv = yargs
     .option('src')
-    .option('dst')
+    .option('dst', { default: '/empty' })
     .demandOption(['src', 'dst'])
     .argv;
 

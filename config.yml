@@ -1,5 +1,7 @@
 ---
 reponame: null
+maintainer: "con29rus@live.ru"
+
 containersLocation: "jmaker/containers"
 packagesLocation: "jmaker/packages/All"
 specialSnapName: "forks"

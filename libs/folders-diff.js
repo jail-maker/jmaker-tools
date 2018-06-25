@@ -14,7 +14,7 @@ const diff = (src, dst) => {
         let rejData = '';
 
         let child = spawn('rsync', [
-            '-nav', '--delete', src, dst,
+            '-na', '--out-format=%n%L', '--delete', src, dst,
         ]);
 
         child.stdout.on('data', data => resData += data);
@@ -45,9 +45,7 @@ module.exports = async (...folders) => {
     let symlinks = /^(.+) -> (.+)$/imu;
     let deleting = /^deleting (.+)$/imu;
 
-    let ret = diffOut.split('\n').slice(1, -3).reduce((acc, line, key) => {
-
-        // if (line.slice(-1) === '/') return acc;
+    let ret = diffOut.split('\n').reduce((acc, line, key) => {
 
         let matches = line.match(deleting);
 

@@ -187,6 +187,8 @@ const config = require('./libs/config');
 
     }
 
+    manifest.toFile(path.join(datasetPath, 'manifest.json'))
+
     zfs.snapshot(newDataset, config.specialSnapName);
 
 })().catch(error => { console.log(error); });

@@ -33,7 +33,7 @@ class WorkdirCommand extends CommandInterface {
         let workdir = path.resolve(manifest.workdir, args);
         let dir = path.join(datasetPath, workdir);
 
-        this._commitName = uuidv5(dir, uuidv5.DNS);
+        this._commitName = uuidv5(index + ' ' + dir, uuidv5.DNS);
         zfs.snapshot(dataset, this._commitName);
         console.log('workdir:', dir);
         await fse.ensureDir(dir);
@@ -50,8 +50,8 @@ class WorkdirCommand extends CommandInterface {
 
         if (this._commitName) {
 
-            zfs.rollback(this._commitName);
-            zfs.destroy(`${dataset}@${this._commitName}`);
+            zfs.rollback(dataset, this._commitName);
+            zfs.destroy(dataset, this._commitName);
 
         }
 

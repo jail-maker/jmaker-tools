@@ -32,7 +32,7 @@ class RunCommand extends CommandInterface {
         let command = args;
         let env = Object.assign({}, process.env, manifest.env);
 
-        this._commitName = uuidv5(command, uuidv5.DNS);
+        this._commitName = uuidv5(index + ' ' + command, uuidv5.DNS);
         zfs.snapshot(dataset, this._commitName);
 
         await (new Promise((res, rej) => {
@@ -75,8 +75,8 @@ class RunCommand extends CommandInterface {
 
         if (this._commitName) {
 
-            zfs.rollback(this._commitName);
-            zfs.destroy(`${dataset}@${this._commitName}`);
+            zfs.rollback(dataset, this._commitName);
+            zfs.destroy(dataset, this._commitName);
 
         }
 

@@ -15,6 +15,11 @@ const PackageManifest = require('./libs/package-manifest');
 
 const argv = yargs
     .option('for')
+    .option('tag', {
+        alias: 't',
+        type: 'string',
+    })
+    .demandOption(['for'])
     .argv;
 
 
@@ -42,9 +47,15 @@ const argv = yargs
 
     if (manifest.from) {
 
-        packageManifest.deps[manifest.from] = {
-            version: '>0.0.0',
-            origin: manifest.from,
+        let regex = /^(\w+)(\-([\w\.]+))?$/;
+        let matches = manifest.from.match(regex);
+        if (!matches) throw new Error('incorrect from.');
+
+        let [_1, from, _2, version] = matches;
+
+        packageManifest.deps[from] = {
+            version: version ? version : '>0.0.0',
+            origin: from,
         };
 
     }
@@ -54,6 +65,8 @@ const argv = yargs
         if (manifest[key]) packageManifest[key] = manifest[key];
 
     }
+
+    if (argv.tag) packageManifest.version = argv.tag;
 
     console.log(JSON.stringify(packageManifest, null, 2));
 

@@ -44,17 +44,25 @@ const config = require('./libs/config');
 
     console.log(newDataset);
 
+
     if (manifest.from) {
 
         await invoker.submitOrUndoAll({
 
             async exec() {
 
-                let fromDataset = path.join(config.containersLocation, manifest.from);
+                let regex = /^(\w+)(\-([\w\.]+))?$/;
+                let matches = manifest.from.match(regex);
+                if (!matches) throw new Error('incorrect from.');
+
+                let [_1, from, _2, version] = matches;
+
+
+                let fromDataset = path.join(config.containersLocation, from);
 
                 if (!zfs.has(fromDataset)) {
 
-                    console.log(`dataset for container "${manifest.from} not exists."`)
+                    console.log(`dataset for container "${from} not exists."`)
                     console.log(`fetching container "${manifest.from} from remote repository."`)
 
                     let result = spawnSync('pkg', [

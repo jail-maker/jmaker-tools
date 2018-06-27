@@ -8,6 +8,7 @@ const mountNullfs = require('../libs/mount-nullfs');
 const umount = require('../libs/umount');
 const CommandInterface = require('../libs/command-interface');
 const config = require('../libs/config');
+const zfs = require('../libs/zfs');
 
 class VolumeCommand extends CommandInterface {
 
@@ -42,7 +43,7 @@ class VolumeCommand extends CommandInterface {
             args = {},
         } = this._receiver;
 
-        let volumes = Dataset.createIfNotExists(config.volumesLocation);
+        zfs.ensureDataset(config.volumesLocation);
 
         args = this._normalizeArgs(args);
 
@@ -50,21 +51,23 @@ class VolumeCommand extends CommandInterface {
             throw new Error('volume path is undefined.');
 
         if (args.name === undefined)
-            args.name = uuidv5(`${containerId} ${args.path}`, uuidv5.DNS);
-            // args.name = uuidv5(`${manifest.name} ${args.path}`, uuidv5.DNS);
+            args.name = uuidv5(`${dataset} ${args.path}`, uuidv5.DNS);
 
         let dst = args.path;
         dst = path.resolve(manifest.workdir, dst);
 
-        let volumePath = path.join(config.volumesLocation, args.name);
-        let volume = Dataset.createIfNotExists(volumePath);
-        let src = volume.path;
-        let mountPath = path.join(dataset.path, dst);
+        let volumeDataset = path.join(config.volumesLocation, args.name);
+        zfs.ensureDataset(volumeDataset);
+        let src = zfs.get(volumeDataset, 'mountpoint');
+        let mountPath = path.join(datasetPath, dst);
         this._mountPath = mountPath;
 
         await ensureDir(mountPath);
-        scope.on('close', _ => umount(this._mountPath, true))
-        scope.on('int', _ => umount(this._mountPath, true))
+
+        process.on('exit',  _ => umount(this._mountPath, true));
+        process.on('SIGINT', _ => umount(this._mountPath, true));
+        process.on('SIGTERM', _ => umount(this._mountPath, true));
+
         mountNullfs(src, mountPath);
 
     }
@@ -74,7 +77,6 @@ class VolumeCommand extends CommandInterface {
         if (this._mountPath) umount(this._mountPath, true);
 
     }
-
 
 }
 

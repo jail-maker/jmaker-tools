@@ -3,5 +3,6 @@ reponame: null
 maintainer: "con29rus@live.ru"
 
 containersLocation: "jmaker/containers"
+volumesLocation: "jmaker/volumes"
 packagesLocation: "jmaker/packages/All"
 specialSnapName: "forks"

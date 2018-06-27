@@ -19,6 +19,7 @@ class CommandInvoker {
 
         } catch (error) {
 
+            console.log(error);
             await this.undo();
             throw error;
 

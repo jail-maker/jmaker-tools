@@ -9,7 +9,6 @@ class Manifest {
         this.name = '';
         this.from = null;
         this.workdir = '/';
-        this.rules = {};
         this.pkg = {};
         this.rctl = {};
         this.dependencies = [];
@@ -20,6 +19,26 @@ class Manifest {
         this.quota = '';
         this.env = {};
         this['resolv-sync'] = true;
+        this.rules = {
+            'mount.devfs': true,
+            'mount.procfs': true,
+            'mount.fdescfs': true,
+            'allow.raw_sockets': true,
+            'allow.socket_af': true,
+            'host.hostname': "${name}.net",
+            'exec.start': "/bin/sh /etc/rc",
+            'exec.stop': "/bin/sh /etc/rc.shutdown",
+            'ip4.addr': [],
+            'ip6.addr': [],
+            sysvsem: true,
+            sysvshm: true,
+        };
+
+    }
+
+    join(...args) {
+
+        return Object.assign(this, ...args);
 
     }
 

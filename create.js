@@ -34,16 +34,12 @@ const config = require('./libs/config');
     let manifest = ManifestFactory.fromYamlFile(file);
     let clonedManifest = manifest.clone();
     let invoker = new CommandInvoker;
-
-    console.dir(manifest);
-
     let newDataset = path.join(config.containersLocation, manifest.name);
 
     if (zfs.has(newDataset))
         throw new Error(`dataset "${manifest.name}" already exists.`);
 
     console.log(newDataset);
-
 
     if (manifest.from) {
 

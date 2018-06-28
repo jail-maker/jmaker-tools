@@ -1,6 +1,6 @@
 ---
-name: "base"
-from: "freebsd111"
+name: "nano"
+from: "freebsd111-0.0.1"
 
 cpus: 1
 
@@ -26,9 +26,15 @@ building:
 
 starting:
 
+  - env:
+      ASSUME_ALWAYS_YES: "yes"
+
+  - volume: { name: "pkg", path: "/var/cache/pkg" }
   - run: "ls /mnt"
   - run: "ls /"
+
+  - env:
+      test: "test"
+
   - run: "env"
-  - volume: { name: "pkg", path: "/var/cache/pkg" }
-  - run: "ping ya.ru"
 

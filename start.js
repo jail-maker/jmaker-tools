@@ -71,6 +71,26 @@ const Cpuset = require('./libs/cpuset');
 
     }
 
+    for (let index in manifest.starting) {
+
+        let obj = manifest.starting[index];
+        let commandName = Object.keys(obj)[0];
+        let args = obj[commandName];
+
+        let commandPath = `./launcher-commands/${commandName}-command`;
+        let CommandClass = require(commandPath);
+        let command = new CommandClass({
+            index,
+            dataset,
+            datasetPath,
+            manifest,
+            args,
+        });
+
+        await invoker.submitOrUndoAll(command);
+
+    }
+
     if (manifest.quota) zfs.set(dataset, 'quota', manifest.quota);
 
     let jail = new Jail({
@@ -100,6 +120,7 @@ const Cpuset = require('./libs/cpuset');
     }
 
     console.log(configObj.toString());
+    // process.exit();
 
     console.log('rctl... ');
     let rctlObj = new Rctl({
@@ -154,34 +175,6 @@ const Cpuset = require('./libs/cpuset');
         console.log('done\n');
 
     }
-
-    // await log.notice('starting...\n');
-
-    // for (let index in manifest.starting) {
-
-    //     let obj = manifest.starting[index];
-    //     let commandName = Object.keys(obj)[0];
-    //     let args = obj[commandName];
-
-    //     let commandPath = `../launcher-commands/${commandName}-command`;
-    //     let CommandClass = require(commandPath);
-    //     let command = new CommandClass({
-    //         index,
-    //         dataset: containerDataset,
-    //         containerId,
-    //         manifest,
-    //         args,
-    //     });
-
-    //     await invoker.submitOrUndoAll(command);
-
-    // }
-
-    // await log.notice('done\n');
-
-    jail.stop();
-
-
 
 })().catch(error => { console.log(error); });
 

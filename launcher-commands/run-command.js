@@ -1,15 +1,7 @@
 'use strict';
 
-const { spawn } = require('node-pty');
-const { ensureDir } = require('fs-extra');
 const path = require('path');
-const logsPool = require('../libs/logs-pool');
-const ExecutionError = require('../libs/errors/execution-error');
-const ExecAbstract = require('../libs/exec-abstract');
-const mountDevfs = require('../libs/mount-devfs');
-const umount = require('../libs/umount');
 const config = require('../libs/config');
-const RuntimeScope = require('../libs/runtime-scope');
 const CommandInterface = require('../libs/command-interface');
 
 class RunCommand extends CommandInterface {
@@ -31,34 +23,23 @@ class RunCommand extends CommandInterface {
             dataset,
         } = this._receiver;
 
-        let log = logsPool.get(containerId);
-        let env = Object.assign({}, process.env, manifest.env);
-        let command = args;
+        let env = manifest.env;
 
-        let child = spawn(
-            '/usr/sbin/jexec',
-            [
-                // manifest.name, "sh", "-c",
-                containerId, "sh", "-c",
-                `cd ${manifest.workdir} && ${command}`
-            ],
-            {
-                name: 'xterm-color',
-                env: env,
-                cwd: '/',
-            }
-        );
+        let rules = manifest.rules['exec.start'];
+        if (!Array.isArray(rules)) rules = rules ? [rules] : [];
+        manifest.rules['exec.start'] = rules;
 
-        let result = await log.fromPty(child);
+        let command = [`cd ${manifest.workdir}`];
+        for (let key in env) {
 
-        if (result.code) {
-
-            console.log(result);
-
-            let msg = `Error execution command: ${command} .`;
-            throw new ExecutionError(msg);
+            let value = env[key];
+            command.push(`export ${key}=${value}`);
 
         }
+
+        command.push(args);
+
+        rules.push(command.join(' && '));
 
     }
 

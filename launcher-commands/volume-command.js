@@ -3,14 +3,12 @@
 const { spawnSync } = require('child_process');
 const { ensureDir } = require('fs-extra');
 const path = require('path');
-const sha256 = require('js-sha256').sha256;
 const uuidv5 = require("uuid/v5");
-const config = require('../libs/config');
-const logsPool = require('../libs/logs-pool');
 const mountNullfs = require('../libs/mount-nullfs');
-const Dataset = require('../libs/layers/dataset');
 const umount = require('../libs/umount');
 const CommandInterface = require('../libs/command-interface');
+const config = require('../libs/config');
+const zfs = require('../libs/zfs');
 
 class VolumeCommand extends CommandInterface {
 
@@ -40,14 +38,12 @@ class VolumeCommand extends CommandInterface {
 
         let {
             dataset,
+            datasetPath,
             manifest,
             args = {},
-            recorder,
-            containerId,
         } = this._receiver;
 
-        let volumes = Dataset.createIfNotExists(config.volumesLocation);
-        let log = logsPool.get(containerId);
+        zfs.ensureDataset(config.volumesLocation);
 
         args = this._normalizeArgs(args);
 
@@ -55,30 +51,35 @@ class VolumeCommand extends CommandInterface {
             throw new Error('volume path is undefined.');
 
         if (args.name === undefined)
-            args.name = uuidv5(`${containerId} ${args.path}`, uuidv5.DNS);
-            // args.name = uuidv5(`${manifest.name} ${args.path}`, uuidv5.DNS);
+            args.name = uuidv5(`${dataset} ${args.path}`, uuidv5.DNS);
 
         let dst = args.path;
         dst = path.resolve(manifest.workdir, dst);
-        dst = path.join(dataset.path, dst);
 
-        let volumePath = path.join(config.volumesLocation, args.name);
-        let volume = Dataset.createIfNotExists(volumePath);
+        let volumeDataset = path.join(config.volumesLocation, args.name);
+        zfs.ensureDataset(volumeDataset);
+        let src = zfs.get(volumeDataset, 'mountpoint');
+        let mountPath = path.join(datasetPath, dst);
+        this._mountPath = mountPath;
 
-        let src = volume.path;
+        await ensureDir(mountPath);
 
-        this._mountPath = dst;
+        let preRules = manifest.rules['exec.prestart'];
+        if (!Array.isArray(preRules)) preRules = preRules ? [preRules] : [];
+        manifest.rules['exec.prestart'] = preRules;
 
-        await ensureDir(dst);
-        mountNullfs(src, dst); 
+        let postRules = manifest.rules['exec.poststop'];
+        if (!Array.isArray(postRules)) postRules = postRules ? [postRules] : [];
+        manifest.rules['exec.poststop'] = postRules;
+
+
+        preRules.push(`mount_nullfs ${src} ${mountPath}`);
+        postRules.push(`umount -f ${mountPath}`);
+
 
     }
 
-    async unExec() {
-
-        if (this._mountPath) umount(this._mountPath, true);
-
-    }
+    async unExec() { }
 
 }
 

@@ -17,7 +17,7 @@ class Jail extends EventEmitter {
 
         this.name = manifest.name;
         this.configFileObj = new ConfigFile(this.name, rules);
-        this.configFilePath = `/tmp/${this.name}-jail.conf`;
+        this.configFilePath = `/var/run/${this.name}-jail.conf`;
         this.manifest = manifest;
 
     }

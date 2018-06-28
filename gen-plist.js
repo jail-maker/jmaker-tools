@@ -90,12 +90,38 @@ function readStdin() {
 
     let prefix = zfs.get(toDataset, 'mountpoint');
 
-    for (let file in data) {
+    let previous = { 
+        mode: '',
+        owner: '',
+        group: '',
+    };
 
-        let action = data[file];
+    for (let key in data) {
+
+        let file = path.join(prefix, key);
         let isFolder = file.slice(-1) === '/';
 
-        file = path.join(prefix, file);
+        let { action } = data[key];
+        // let {action, owner, group, mode} = data[key];
+
+        let stats = fs.lstatSync(file);
+        let permissions = {
+            mode: stats.mode.toString(8).slice(-4),
+            group: stats.gid,
+            owner: stats.uid
+        };
+        // let permissions = {mode: Perms.toMode(mode), owner, group};
+
+        for (let key in permissions) {
+
+            if (previous[key] !== permissions[key]) {
+
+                previous[key] = permissions[key];
+                lines.push(`@${key} ${permissions[key]}`);
+
+            }
+
+        }
 
         if (isFolder && action === 'A') {
 

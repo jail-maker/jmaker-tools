@@ -101,8 +101,7 @@ function readStdin() {
         let file = path.join(prefix, key);
         let isFolder = file.slice(-1) === '/';
 
-        let { action } = data[key];
-        // let {action, owner, group, mode} = data[key];
+        let action = data[key];
 
         let stats = fs.lstatSync(file);
         let permissions = {
@@ -110,7 +109,6 @@ function readStdin() {
             group: stats.gid,
             owner: stats.uid
         };
-        // let permissions = {mode: Perms.toMode(mode), owner, group};
 
         for (let key in permissions) {
 

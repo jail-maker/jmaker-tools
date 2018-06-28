@@ -14,7 +14,7 @@ const diff = (src, dst) => {
         let rejData = '';
 
         let child = spawn('rsync', [
-            '-na', '--out-format=%B %U %G %n%L', '--delete', src, dst,
+            '-na', '--out-format=%n%L', '--delete', src, dst,
         ]);
 
         child.stdout.on('data', data => resData += data);
@@ -42,8 +42,8 @@ module.exports = async (...folders) => {
         .toString()
         .trim('\n');
 
-    let files = /^([rwx-]+) (\d+) (\d+) (.+)$/imu;
-    let symlinks = /^([rwx-]+) (\d+) (\d+) (.+) [-=]> (.+)$/imu;
+    let files = /^(.+)$/imu;
+    let symlinks = /^(.+) [-=]> (.+)$/imu;
     let deleting = /^deleting (.+)$/imu;
 
     let ret = diffOut.split('\n').reduce((acc, line, key) => {
@@ -62,9 +62,9 @@ module.exports = async (...folders) => {
 
         if (matches) {
 
-            let [ _, mode, owner, group, file ] = matches;
+            let [ _, file ] = matches;
 
-            acc[file] = {action: 'A', owner, group, mode};
+            acc[file] = 'A';
             return acc;
 
         }
@@ -73,9 +73,9 @@ module.exports = async (...folders) => {
 
         if (matches) {
 
-            let [ _, mode, owner, group, file ] = matches;
+            let [ _, file ] = matches;
 
-            acc[file] = {action: 'A', owner, group, mode};
+            acc[file] = 'A';
             return acc;
 
         }

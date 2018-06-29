@@ -24,10 +24,15 @@ const config = require('./libs/config');
     console.log(config);
 
     const argv = yargs
-        .option('manifest', {
+        .option('m', {
+            alias: 'manifest',
             default: './jmakefile.yml',
         })
-        .demandOption(['manifest'])
+        .option('c', {
+            alias: 'context',
+            default: './',
+        })
+        .demandOption(['manifest', 'context'])
         .argv;
 
     let file = path.resolve(argv.manifest);
@@ -113,7 +118,7 @@ const config = require('./libs/config');
         let dev = path.join(datasetPath, '/dev');
         let fd = path.join(datasetPath, '/dev/fd');
         let proc = path.join(datasetPath, '/proc');
-        let srcContextPath = path.resolve('./');
+        let srcContextPath = path.resolve(argv.context);
 
         await fse.ensureDir(dev);
         await fse.ensureDir(fd);

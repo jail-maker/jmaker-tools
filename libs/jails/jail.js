@@ -8,6 +8,12 @@ const ConfigFile = require('./config-file');
 
 class Jail extends EventEmitter {
 
+    static confFileByName(name) {
+
+        return `/var/run/${name}-jail.conf`;
+
+    }
+
     constructor({ manifest, dataset, datasetPath }) {
 
         super();
@@ -17,7 +23,7 @@ class Jail extends EventEmitter {
 
         this.name = manifest.name;
         this.configFileObj = new ConfigFile(this.name, rules);
-        this.configFilePath = `/var/run/${this.name}-jail.conf`;
+        this.configFilePath = Jail.confFileByName(this.name);
         this.manifest = manifest;
 
     }

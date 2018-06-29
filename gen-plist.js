@@ -3,6 +3,7 @@
 'use strict';
 
 const fs = require('fs');
+const userid = require('userid');
 const path = require('path');
 const yargs = require('yargs');
 const yaml = require('js-yaml');
@@ -106,22 +107,22 @@ function readStdin() {
         let stats = fs.lstatSync(file);
         let permissions = {
             mode: stats.mode.toString(8).slice(-4),
-            group: stats.gid,
-            owner: stats.uid
+            group: userid.groupname(stats.gid),
+            owner: userid.username(stats.uid),
         };
 
-        lines.unshift(`@postexec /usr/sbin/chown ${permissions.owner}:${permissions.group} ${file.replace('%', '%%')}`);
+        // lines.unshift(`@postexec /usr/sbin/chown ${permissions.owner}:${permissions.group} ${file.replace('%', '%%')}`);
 
-        // for (let key in permissions) {
+        for (let key in permissions) {
 
-        //     if (previous[key] !== permissions[key]) {
+            if (previous[key] !== permissions[key]) {
 
-        //         previous[key] = permissions[key];
-        //         lines.push(`@${key} ${permissions[key]}`);
+                previous[key] = permissions[key];
+                lines.push(`@${key} ${permissions[key]}`);
 
-        //     }
+            }
 
-        // }
+        }
 
         if (isFolder && action === 'A') {
 

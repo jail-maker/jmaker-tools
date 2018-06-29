@@ -1,6 +1,6 @@
 ---
 name: "nano"
-from: "freebsd111-0.0.1"
+from: "freebsd111"
 
 cpus: 1
 

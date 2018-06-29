@@ -83,9 +83,9 @@ function readStdin() {
     }
 
     lines = [
-        ...lines,
         `@postexec zfs snapshot ${toDataset}@${config.specialSnapName}`,
         `@postunexec zfs destroy -R ${toDataset}`,
+        ...lines,
     ];
 
     let prefix = zfs.get(toDataset, 'mountpoint');
@@ -110,16 +110,18 @@ function readStdin() {
             owner: stats.uid
         };
 
-        for (let key in permissions) {
+        lines.unshift(`@postexec /usr/sbin/chown ${permissions.owner}:${permissions.group} ${file.replace('%', '%%')}`);
 
-            if (previous[key] !== permissions[key]) {
+        // for (let key in permissions) {
 
-                previous[key] = permissions[key];
-                lines.push(`@${key} ${permissions[key]}`);
+        //     if (previous[key] !== permissions[key]) {
 
-            }
+        //         previous[key] = permissions[key];
+        //         lines.push(`@${key} ${permissions[key]}`);
 
-        }
+        //     }
+
+        // }
 
         if (isFolder && action === 'A') {
 

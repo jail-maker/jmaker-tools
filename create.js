@@ -72,7 +72,7 @@ const config = require('./libs/config');
 
                     if (result.status){
 
-                        let msg = `container ${manifest.from} not found in remote repository.`;
+                        let msg = `container "${manifest.from}" not found in remote repository.`;
                         throw new Error(msg);
 
                     }

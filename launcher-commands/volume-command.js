@@ -16,7 +16,6 @@ class VolumeCommand extends CommandInterface {
 
         super();
         this._receiver = receiver;
-        this._mountPath = null;
 
     }
 
@@ -60,7 +59,6 @@ class VolumeCommand extends CommandInterface {
         zfs.ensureDataset(volumeDataset);
         let src = zfs.get(volumeDataset, 'mountpoint');
         let mountPath = path.join(datasetPath, dst);
-        this._mountPath = mountPath;
 
         await ensureDir(mountPath);
 

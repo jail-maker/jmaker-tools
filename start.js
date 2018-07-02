@@ -38,6 +38,7 @@ const Cpuset = require('./libs/cpuset');
         })
         .option('volume', {
             type: 'array',
+            default: [],
             describe: 'volumes for container.\n Example: ./:/mnt/volume /var/db:/var/db'
         })
         .demandOption(['name'])

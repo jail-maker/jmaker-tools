@@ -24,11 +24,11 @@ class VolumeCommand extends CommandInterface {
 
         const template = {
             name: undefined,
-            path: undefined,
+            to: undefined,
         };
 
         if (typeof(args) === 'string') 
-            args = { path: args };
+            args = { to: args };
 
         return Object.assign(template, args);
 
@@ -47,13 +47,13 @@ class VolumeCommand extends CommandInterface {
 
         args = this._normalizeArgs(args);
 
-        if (args.path === undefined)
-            throw new Error('volume path is undefined.');
+        if (args.to === undefined)
+            throw new Error('volume argument "to" is undefined.');
 
         if (args.name === undefined)
-            args.name = uuidv5(`${dataset} ${args.path}`, uuidv5.DNS);
+            args.name = uuidv5(`${dataset} ${args.to}`, uuidv5.DNS);
 
-        let dst = args.path;
+        let dst = args.to;
         dst = path.resolve(manifest.workdir, dst);
 
         let volumeDataset = path.join(config.volumesLocation, args.name);

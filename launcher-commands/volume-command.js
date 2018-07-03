@@ -23,11 +23,12 @@ class VolumeCommand extends CommandInterface {
 
         const template = {
             name: undefined,
-            path: undefined,
+            from: undefined,
+            to: undefined,
         };
 
         if (typeof(args) === 'string') 
-            args = { path: args };
+            args = { to: args };
 
         return Object.assign(template, args);
 
@@ -46,18 +47,28 @@ class VolumeCommand extends CommandInterface {
 
         args = this._normalizeArgs(args);
 
-        if (args.path === undefined)
-            throw new Error('volume path is undefined.');
+        if (args.to === undefined)
+            throw new Error('volume argument "to" is undefined.');
 
-        if (args.name === undefined)
-            args.name = uuidv5(`${dataset} ${args.path}`, uuidv5.DNS);
+        let src = null;
+        let dst = args.to;
+        dst = path.resolve('/', dst);
 
-        let dst = args.path;
-        dst = path.resolve(manifest.workdir, dst);
+        if (args.from) {
 
-        let volumeDataset = path.join(config.volumesLocation, args.name);
-        zfs.ensureDataset(volumeDataset);
-        let src = zfs.get(volumeDataset, 'mountpoint');
+            src = path.resolve(args.from);
+
+        } else {
+
+            if (args.name === undefined)
+                args.name = uuidv5(`${dataset} ${args.to}`, uuidv5.DNS);
+
+            let volumeDataset = path.join(config.volumesLocation, args.name);
+            zfs.ensureDataset(volumeDataset);
+            src = zfs.get(volumeDataset, 'mountpoint');
+
+        }
+
         let mountPath = path.join(datasetPath, dst);
 
         await ensureDir(mountPath);

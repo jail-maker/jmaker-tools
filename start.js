@@ -60,6 +60,18 @@ const Cpuset = require('./libs/cpuset');
 
         });
 
+    argv.volume
+        .forEach(item => {
+
+            let [from, to] = item.split(':');
+            if (!to && from) [to, from] = [from, to];
+
+            manifest.starting.push({ volume: {from, to}});
+
+        });
+
+    console.dir(manifest.starting);
+
     zfs.ensureSnapshot(dataset, config.specialSnapName);
     zfs.rollback(dataset, config.specialSnapName);
 

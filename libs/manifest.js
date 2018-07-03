@@ -25,6 +25,7 @@ class Manifest {
             'mount.fdescfs': true,
             'allow.raw_sockets': true,
             'allow.socket_af': true,
+            'allow.sysvipc': true,
             'host.hostname': "${name}.net",
             'exec.prestart': [],
             'exec.poststop': [],
@@ -32,8 +33,10 @@ class Manifest {
             'exec.stop': ["/bin/sh /etc/rc.shutdown"],
             'ip4.addr': [],
             'ip6.addr': [],
+            sysvmsg: true,
             sysvsem: true,
             sysvshm: true,
+            persist: true,
         };
 
     }

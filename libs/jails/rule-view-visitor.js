@@ -6,6 +6,8 @@ class RuleViewVisitor {
 
         let rules = configFileObj.getRules();
 
+        console.log(rules)
+
         for (let key in rules) {
 
             let rule = rules[key];
@@ -19,7 +21,9 @@ class RuleViewVisitor {
 
                 let strings = rule.data.map(item => {
 
-                    return `  ${rule.key} += "${item}";`;
+                    let operator = rule.data.length === 1 ? '=' : '+=';
+
+                    return `  ${rule.key} ${operator} "${item}";`;
 
                 });
 

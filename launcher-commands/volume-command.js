@@ -61,7 +61,7 @@ class VolumeCommand extends CommandInterface {
 
             } else {
 
-                let volumeDataset = path.join(config.volumesLocation, args.name);
+                let volumeDataset = path.join(config.volumesLocation, args.from);
                 zfs.ensureDataset(volumeDataset);
                 src = zfs.get(volumeDataset, 'mountpoint');
 

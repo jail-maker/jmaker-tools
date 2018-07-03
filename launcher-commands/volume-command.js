@@ -51,12 +51,21 @@ class VolumeCommand extends CommandInterface {
             throw new Error('volume argument "to" is undefined.');
 
         let src = null;
-        let dst = args.to;
-        dst = path.resolve('/', dst);
+        let dst = path.resolve('/', args.to);
 
         if (args.from) {
 
-            src = path.resolve(args.from);
+            if (path.isAbsolute(args.from)) {
+
+                src = path.resolve(args.from);
+
+            } else {
+
+                let volumeDataset = path.join(config.volumesLocation, args.name);
+                zfs.ensureDataset(volumeDataset);
+                src = zfs.get(volumeDataset, 'mountpoint');
+
+            }
 
         } else {
 
@@ -80,7 +89,6 @@ class VolumeCommand extends CommandInterface {
         let postRules = manifest.rules['exec.poststop'];
         if (!Array.isArray(postRules)) postRules = postRules ? [postRules] : [];
         manifest.rules['exec.poststop'] = postRules;
-
 
         preRules.push(`mount_nullfs ${src} ${mountPath}`);
         postRules.push(`umount -f ${mountPath}`);

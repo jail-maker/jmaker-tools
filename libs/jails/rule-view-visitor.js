@@ -6,8 +6,6 @@ class RuleViewVisitor {
 
         let rules = configFileObj.getRules();
 
-        console.log(rules)
-
         for (let key in rules) {
 
             let rule = rules[key];

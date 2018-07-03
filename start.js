@@ -70,8 +70,6 @@ const Cpuset = require('./libs/cpuset');
 
         });
 
-    console.dir(manifest.starting);
-
     zfs.ensureSnapshot(dataset, config.specialSnapName);
     zfs.rollback(dataset, config.specialSnapName);
 
@@ -135,9 +133,6 @@ const Cpuset = require('./libs/cpuset');
         await invoker.submitOrUndoAll(command);
 
     }
-
-    console.log(configObj.toString());
-    // process.exit();
 
     console.log('rctl... ');
     let rctlObj = new Rctl({

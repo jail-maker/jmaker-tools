@@ -5,6 +5,7 @@
 const os = require('os');
 const fs = require('fs');
 const fse = require('fs-extra');
+const consul = require('consul')({promisify: true});
 const path = require('path');
 const yargs = require('yargs');
 const { spawn, spawnSync }= require('child_process');
@@ -185,6 +186,36 @@ const Cpuset = require('./libs/cpuset');
         }
 
         console.log('done\n');
+
+    }
+
+    {
+
+        console.dir(jail.info);
+
+        try {
+
+            await consul.agent.service.register({
+                name: jail.info.name,
+                tags: [
+                    `urlprefix-${jail.info['host.hostname']}/`,
+                ],
+                address: jail.info['ip4.addr'],
+                check: {
+                    id: 'jls',
+                    name: 'get jail info',
+                    args: ['/usr/sbin/jls', '-j', jail.info.name],
+                    interval: '30s',
+                    timeout: '1s',
+                },
+            });
+
+        } catch (error) {
+
+            console.log('service not register.');
+            console.log(error);
+
+        }
 
     }
 

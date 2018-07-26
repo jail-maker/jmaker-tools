@@ -70,7 +70,7 @@ const config = require('./libs/config');
                         'install', '-y', manifest.from,
                     ], { stdio: 'inherit' });
 
-                    if (result.status){
+                    if (result.status) {
 
                         let msg = `container "${manifest.from}" not found in remote repository.`;
                         throw new Error(msg);

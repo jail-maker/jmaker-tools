@@ -2,7 +2,7 @@
 reponame: null
 maintainer: "con29rus@live.ru"
 
-containersLocation: "jmaker/containers"
-volumesLocation: "jmaker/volumes"
-packagesLocation: "jmaker/packages/All"
+containersLocation: "zroot/jmaker/containers"
+volumesLocation: "zroot/jmaker/volumes"
+packagesLocation: "zroot/jmaker/packages"
 specialSnapName: "forks"

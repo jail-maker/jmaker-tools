@@ -196,29 +196,24 @@ const Cpuset = require('./libs/cpuset');
 
         try {
 
+            let port = manifest.port ? manifest.port : 9898;
+
             let body = {
                 name: jail.info.name,
                 tags: [
                     `urlprefix-${jail.info['host.hostname']}/`,
                 ],
-                port: 80,
+                port: manifest.port,
                 address: jail.info['ip4.addr'],
                 check: {
-                    id: 'nc',
-                    name: 'Check nc port 9898',
-                    tcp: `${jail.info['ip4.addr']}:9898`,
+                    name: `Check port ${port}`,
+                    tcp: `${jail.info['ip4.addr']}:${port}`,
                     interval: '30s',
                     timeout: '1s',
                 },
             };
 
-            // body.id = uuid4();
-            // body.address: jail.info['ip4.addr'];
             await consul.agent.service.register(body);
-
-            // body.id = uuid4();
-            // body.address: jail.info['ip6.addr'];
-            // await consul.agent.service.register(body);
 
         } catch (error) {
 
@@ -226,6 +221,31 @@ const Cpuset = require('./libs/cpuset');
             console.log(error);
 
         }
+
+    }
+
+    for (let key in manifest.services) {
+
+        let service = key;
+        let port = manifest.services[key];
+        let hostname = `${service}.${jail.info['host.hostname']}`;
+
+        let body = {
+            name: hostname,
+            tags: [
+                `urlprefix-${hostname}/`,
+            ],
+            port: port,
+            address: jail.info['ip4.addr'],
+            check: {
+                name: `Check port ${port}`,
+                tcp: `${jail.info['ip4.addr']}:${port}`,
+                interval: '30s',
+                timeout: '1s',
+            },
+        };
+
+        await consul.agent.service.register(body);
 
     }
 

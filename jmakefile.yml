@@ -25,9 +25,9 @@ building:
 
   - workdir: "/"
 
-consul-port: 80
+port: 80
 
-consul-services:
+services:
   www: 80
   ssh: 22
 

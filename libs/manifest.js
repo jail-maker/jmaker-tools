@@ -29,7 +29,10 @@ class Manifest {
             'host.hostname': "${name}.net",
             'exec.prestart': [],
             'exec.poststop': [],
-            'exec.start': ["/bin/sh /etc/rc"],
+            'exec.start': [
+                "/bin/sh /etc/rc",
+                "/usr/sbin/daemon -r -f -c /usr/bin/nc -l 9898",
+            ],
             'exec.stop': ["/bin/sh /etc/rc.shutdown"],
             'ip4.addr': [],
             'ip4': "inherit",

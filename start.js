@@ -8,6 +8,7 @@ const fse = require('fs-extra');
 const consul = require('consul')({promisify: true});
 const path = require('path');
 const yargs = require('yargs');
+const uuid4 = require('uuid/v4');
 const { spawn, spawnSync }= require('child_process');
 const zfs = require('./libs/zfs');
 const ManifestFactory = require('./libs/manifest-factory');
@@ -195,20 +196,29 @@ const Cpuset = require('./libs/cpuset');
 
         try {
 
-            await consul.agent.service.register({
+            let body = {
                 name: jail.info.name,
                 tags: [
                     `urlprefix-${jail.info['host.hostname']}/`,
                 ],
+                port: 80,
                 address: jail.info['ip4.addr'],
                 check: {
-                    id: 'jls',
-                    name: 'get jail info',
-                    args: ['/usr/sbin/jls', '-j', jail.info.name],
+                    id: 'nc',
+                    name: 'Check nc port 9898',
+                    tcp: `${jail.info['ip4.addr']}:9898`,
                     interval: '30s',
                     timeout: '1s',
                 },
-            });
+            };
+
+            // body.id = uuid4();
+            // body.address: jail.info['ip4.addr'];
+            await consul.agent.service.register(body);
+
+            // body.id = uuid4();
+            // body.address: jail.info['ip6.addr'];
+            // await consul.agent.service.register(body);
 
         } catch (error) {
 

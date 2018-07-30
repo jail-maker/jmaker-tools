@@ -1,7 +1,7 @@
 ---
-name: "websm_io"
+name: "tech_ru"
 from: "freebsd111"
-host.hostname: 'websm.io'
+host.hostname: 'tech29.ru'
 
 cpus: 1
 
@@ -25,7 +25,7 @@ building:
 
   - workdir: "/"
 
-service: { proto: 'http', port: '80' }
+service: { proto: 'http', port: 80 }
 
 services:
   www: { proto: 'http', port: 80 }

@@ -206,7 +206,7 @@ const Cpuset = require('./libs/cpuset');
                 tags: [
                     `urlprefix-${jail.info['host.hostname']}/ proto=${proto}`,
                 ],
-                port: manifest.port,
+                port: parseInt(port),
                 address: jail.info['ip4.addr'],
                 check: {
                     name: `Check port ${port}`,
@@ -232,7 +232,7 @@ const Cpuset = require('./libs/cpuset');
         let service = key;
         let hostname = `${service}.${jail.info['host.hostname']}`;
         let {
-            port,
+            port = 0,
             proto = 'tcp',
         } = manifest.services[key];
 
@@ -241,7 +241,7 @@ const Cpuset = require('./libs/cpuset');
             tags: [
                 `urlprefix-${hostname}/ proto=${proto}`,
             ],
-            port: port,
+            port: parseInt(port),
             address: jail.info['ip4.addr'],
             check: {
                 name: `Check port ${port}`,

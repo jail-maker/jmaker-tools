@@ -196,12 +196,15 @@ const Cpuset = require('./libs/cpuset');
 
         try {
 
-            let port = manifest.port ? manifest.port : 9898;
+            let {
+                port = 9898,
+                proto = 'tcp',
+            } = manifest.service;
 
             let body = {
                 name: jail.info.name,
                 tags: [
-                    `urlprefix-${jail.info['host.hostname']}/`,
+                    `urlprefix-${jail.info['host.hostname']}/ proto=${proto}`,
                 ],
                 port: manifest.port,
                 address: jail.info['ip4.addr'],
@@ -227,13 +230,16 @@ const Cpuset = require('./libs/cpuset');
     for (let key in manifest.services) {
 
         let service = key;
-        let port = manifest.services[key];
         let hostname = `${service}.${jail.info['host.hostname']}`;
+        let {
+            port,
+            proto = 'tcp',
+        } = manifest.services[key];
 
         let body = {
             name: hostname,
             tags: [
-                `urlprefix-${hostname}/`,
+                `urlprefix-${hostname}/ proto=${proto}`,
             ],
             port: port,
             address: jail.info['ip4.addr'],

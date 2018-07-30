@@ -14,7 +14,7 @@ class Manifest {
         this.dependencies = [];
         this.cpus = '';
         this.cpuset = '';
-        this.port = 0;
+        this.service = {};
         this.services = {};
         this.building = [];
         this.starting = [];

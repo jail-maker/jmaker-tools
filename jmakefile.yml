@@ -19,17 +19,17 @@ building:
   - env:
       ASSUME_ALWAYS_YES: "yes"
 
-  # - volume: { name: "pkg", to: "/var/cache/pkg" }
+  - volume: { name: "pkg", to: "/var/cache/pkg" }
   - run: "pkg install -y nginx"
   # - run: "pkg install -y mysql56-server mysql56-client"
 
   - workdir: "/"
 
-port: 80
+service: { proto: 'http', port: '80' }
 
 services:
-  www: 80
-  ssh: 22
+  www: { proto: 'http', port: 80 }
+  ssh: { proto: 'tcp', port: 22 }
 
 starting:
 

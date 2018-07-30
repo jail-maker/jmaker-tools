@@ -55,14 +55,25 @@ class VolumeCommand extends CommandInterface {
 
         let dst = args.to;
         dst = path.resolve(manifest.workdir, dst);
-
-        let volumeDataset = path.join(config.volumesLocation, args.name);
-        zfs.ensureDataset(volumeDataset);
-        let src = zfs.get(volumeDataset, 'mountpoint');
         let mountPath = path.join(datasetPath, dst);
-        this._mountPath = mountPath;
+        let volumeDataset = path.join(config.volumesLocation, args.name);
+        let src = null;
 
         await ensureDir(mountPath);
+
+        if (zfs.has(volumeDataset)) {
+
+            src = zfs.get(volumeDataset, 'mountpoint');
+
+        } else {
+
+            zfs.ensureDataset(volumeDataset);
+            src = zfs.get(volumeDataset, 'mountpoint');
+            await copy(path.join(mountPath, '/'), path.join(src, '/'));
+
+        }
+
+        this._mountPath = mountPath;
 
         process.on('exit',  _ => umount(this._mountPath, true));
         process.on('SIGINT', _ => umount(this._mountPath, true));

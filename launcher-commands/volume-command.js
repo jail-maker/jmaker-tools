@@ -1,7 +1,8 @@
 'use strict';
 
 const { spawnSync } = require('child_process');
-const { ensureDir } = require('fs-extra');
+const { ensureDir, copy } = require('fs-extra');
+const fs = require('fs');
 const path = require('path');
 const uuidv5 = require("uuid/v5");
 const mountNullfs = require('../libs/mount-nullfs');
@@ -52,6 +53,9 @@ class VolumeCommand extends CommandInterface {
 
         let src = null;
         let dst = path.resolve('/', args.to);
+        let mountPath = path.join(datasetPath, dst);
+
+        await ensureDir(mountPath);
 
         if (args.from) {
 
@@ -73,14 +77,19 @@ class VolumeCommand extends CommandInterface {
                 args.name = uuidv5(`${dataset} ${args.to}`, uuidv5.DNS);
 
             let volumeDataset = path.join(config.volumesLocation, args.name);
-            zfs.ensureDataset(volumeDataset);
-            src = zfs.get(volumeDataset, 'mountpoint');
+            if (zfs.has(volumeDataset)) {
+
+                src = zfs.get(volumeDataset, 'mountpoint');
+
+            } else {
+
+                zfs.ensureDataset(volumeDataset);
+                src = zfs.get(volumeDataset, 'mountpoint');
+                await copy(path.join(mountPath, '/'), path.join(src, '/'));
+
+            }
 
         }
-
-        let mountPath = path.join(datasetPath, dst);
-
-        await ensureDir(mountPath);
 
         let preRules = manifest.rules['exec.prestart'];
         if (!Array.isArray(preRules)) preRules = preRules ? [preRules] : [];

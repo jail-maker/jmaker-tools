@@ -211,7 +211,8 @@ const redis = new Redis;
             manifest,
         }
 
-        redis.publish('jmaker:containers:started', JSON.stringify(payload));
+        await redis.publish('jmaker:containers:started', JSON.stringify(payload));
+        redis.disconnect();
     }
 
     {

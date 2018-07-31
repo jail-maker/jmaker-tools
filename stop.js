@@ -39,9 +39,8 @@ const redis = new Redis;
             manifest,
         };
 
-        await redis.connect();
-        redis.publish('jmaker:containers:stoped', JSON.stringify(payload));
-        await redis.disconnect();
+        await redis.publish('jmaker:containers:stoped', JSON.stringify(payload));
+        redis.disconnect();
     }
 
     Jail.stop(argv.name);

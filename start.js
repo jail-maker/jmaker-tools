@@ -21,6 +21,8 @@ const autoIfaceVisitor = require('./libs/jails/auto-iface-visitor');
 const autoIpVisitor = require('./libs/jails/auto-ip-visitor');
 const Rctl = require('./libs/rctl');
 const Cpuset = require('./libs/cpuset');
+const Redis = require('ioredis');
+const redis = new Redis;
 
 (async _ => {
 
@@ -203,8 +205,16 @@ const Cpuset = require('./libs/cpuset');
     }
 
     {
+        let payload = {
+            eventName: 'started',
+            info: jailInfo,
+            manifest,
+        }
 
-        console.dir(jailInfo);
+        redis.publish('jmaker:containers:started', JSON.stringify(payload));
+    }
+
+    {
 
         try {
 

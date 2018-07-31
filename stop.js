@@ -10,6 +10,10 @@ const yargs = require('yargs');
 const { spawn, spawnSync } = require('child_process');
 const config = require('./libs/config');
 const Jail = require('./libs/jail');
+const zfs = require('./libs/zfs');
+const ManifestFactory = require('./libs/manifest-factory');
+const Redis = require('ioredis');
+const redis = new Redis;
 
 (async _ => {
 
@@ -26,6 +30,20 @@ const Jail = require('./libs/jail');
     let datasetPath = zfs.get(dataset, 'mountpoint');
     let manifestFile = path.join(datasetPath, 'manifest.json');
     let manifest = ManifestFactory.fromJsonFile(manifestFile);
+    let jailInfo = Jail.getInfo(argv.name);
+
+    {
+        let payload = {
+            eventName: 'stoped',
+            info: jailInfo,
+            manifest,
+        };
+
+        await redis.connect();
+        redis.publish('jmaker:containers:stoped', JSON.stringify(payload));
+        await redis.disconnect();
+    }
+
     Jail.stop(argv.name);
     fs.unlinkSync(Jail.confFileByName(argv.name));
 
@@ -34,12 +52,12 @@ const Jail = require('./libs/jail');
 
     for (let key in manifest.services) {
 
-        let hostname = `${service}.${jailInfo['host.hostname']}`;
+        let hostname = `${key}.${manifest.rules['host.hostname']}`;
         services.push(hostname);
 
     }
 
-    services.forEach(service => {
+    services.forEach(async service => {
 
         try {
 

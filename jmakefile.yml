@@ -22,7 +22,6 @@ building:
       ASSUME_ALWAYS_YES: "yes"
 
   - volume: { name: "pkg", to: "/var/cache/pkg" }
-  - volume: { name: "pkg-db", to: "/var/db/pkg" }
   - run: "pkg install -y -f nginx"
 
   - workdir: "/"

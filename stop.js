@@ -7,9 +7,9 @@ const fs = require('fs');
 const path = require('path');
 const consul = require('consul')({promisify: true});
 const yargs = require('yargs');
-const { spawn, spawnSync }= require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const config = require('./libs/config');
-const Jail = require('./libs/jails/jail');
+const Jail = require('./libs/jail');
 
 (async _ => {
 
@@ -22,25 +22,36 @@ const Jail = require('./libs/jails/jail');
         .demandOption(['name'])
         .argv;
 
-    let jailFile = Jail.confFileByName(argv.name);
+    let dataset = path.join(config.containersLocation, argv.name);
+    let datasetPath = zfs.get(dataset, 'mountpoint');
+    let manifestFile = path.join(datasetPath, 'manifest.json');
+    let manifest = ManifestFactory.fromJsonFile(manifestFile);
+    Jail.stop(argv.name);
+    fs.unlinkSync(Jail.confFileByName(argv.name));
 
-    spawnSync(
-        'jail',
-        ['-f', jailFile, '-r', argv.name], 
-        { stdio: 'inherit' }
-    );
+    let services = [];
+    services.push(manifest.rules['host.hostname']);
 
-    fs.unlinkSync(jailFile);
+    for (let key in manifest.services) {
 
-    try {
-
-        await consul.agent.service.deregister(argv.name);
-
-    } catch (error) {
-
-        console.log('service not registred');
-        console.log(error);
+        let hostname = `${service}.${jailInfo['host.hostname']}`;
+        services.push(hostname);
 
     }
+
+    services.forEach(service => {
+
+        try {
+
+            await consul.agent.service.deregister(service);
+
+        } catch (error) {
+
+            console.log('service not registred');
+            console.log(error);
+
+        }
+
+    });
 
 })().catch(error => { console.log(error); });

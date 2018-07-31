@@ -9,18 +9,18 @@ const consul = require('consul')({promisify: true});
 const path = require('path');
 const yargs = require('yargs');
 const uuid4 = require('uuid/v4');
-const { spawn, spawnSync }= require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const zfs = require('./libs/zfs');
 const ManifestFactory = require('./libs/manifest-factory');
 const CommandInvoker = require('./libs/command-invoker');
 const config = require('./libs/config');
-const Jail = require('./libs/jails/jail');
+const Jail = require('./libs/jail');
+const ConfigFile = require('./libs/jails/config-file.js');
 const ruleViewVisitor = require('./libs/jails/rule-view-visitor');
 const autoIfaceVisitor = require('./libs/jails/auto-iface-visitor');
 const autoIpVisitor = require('./libs/jails/auto-ip-visitor');
 const Rctl = require('./libs/rctl');
 const Cpuset = require('./libs/cpuset');
-
 
 (async _ => {
 
@@ -45,6 +45,12 @@ const Cpuset = require('./libs/cpuset');
         })
         .demandOption(['name'])
         .argv;
+
+    if (Jail.isWorking(argv.name)) {
+
+        throw new Error(`Container ${argv.name} already working.`);
+
+    }
 
     let dataset = path.join(config.containersLocation, argv.name);
     let datasetPath = zfs.get(dataset, 'mountpoint');
@@ -110,13 +116,15 @@ const Cpuset = require('./libs/cpuset');
 
     if (manifest.quota) zfs.set(dataset, 'quota', manifest.quota);
 
-    let jail = new Jail({
-        manifest,
-        dataset,
-        datasetPath,
-    });
+    let configObj = null;
 
-    let configObj = jail.configFileObj;
+    {
+
+        let rules = Object.assign({}, manifest.rules);
+        rules.path = datasetPath;
+        configObj = new ConfigFile(manifest.name, rules);
+
+    }
 
     {
 
@@ -136,6 +144,8 @@ const Cpuset = require('./libs/cpuset');
 
     }
 
+    configObj.save(Jail.confFileByName(manifest.name));
+
     console.log('rctl... ');
     let rctlObj = new Rctl({
         rulset: manifest.rctl,
@@ -149,13 +159,15 @@ const Cpuset = require('./libs/cpuset');
         console.log('jail starting...\n');
 
         let command = {
-            exec: async _ => jail.start(),
-            unExec: async _ => jail.stop(),
+            exec: async _ => Jail.start(manifest.name),
+            unExec: async _ => Jail.stop(manifest.name),
         };
 
         await invoker.submitOrUndoAll(command);
         console.log('done\n');
     }
+
+    let jailInfo = Jail.getInfo(manifest.name);
 
     if (manifest.cpus) {
 
@@ -175,7 +187,7 @@ const Cpuset = require('./libs/cpuset');
         try {
 
             let cpuset = new Cpuset({
-                jid: jail.info.jid, value: manifest.cpuset 
+                jid: jailInfo.jid, value: manifest.cpuset 
             });
             await invoker.submitOrUndoAll(cpuset);
 
@@ -192,7 +204,7 @@ const Cpuset = require('./libs/cpuset');
 
     {
 
-        console.dir(jail.info);
+        console.dir(jailInfo);
 
         try {
 
@@ -202,15 +214,15 @@ const Cpuset = require('./libs/cpuset');
             } = manifest.service;
 
             let body = {
-                name: jail.info.name,
+                name: jailInfo['host.hostname'],
                 tags: [
-                    `urlprefix-${jail.info['host.hostname']}/ proto=${proto}`,
+                    `urlprefix-${jailInfo['host.hostname']}/ proto=${proto}`,
                 ],
                 port: parseInt(port),
-                address: jail.info['ip4.addr'],
+                address: jailInfo['ip4.addr'],
                 check: {
                     name: `Check port ${port}`,
-                    tcp: `${jail.info['ip4.addr']}:${port}`,
+                    tcp: `${jailInfo['ip4.addr']}:${port}`,
                     interval: '30s',
                     timeout: '1s',
                 },
@@ -230,7 +242,7 @@ const Cpuset = require('./libs/cpuset');
     for (let key in manifest.services) {
 
         let service = key;
-        let hostname = `${service}.${jail.info['host.hostname']}`;
+        let hostname = `${service}.${jailInfo['host.hostname']}`;
         let {
             port = 0,
             proto = 'tcp',
@@ -242,10 +254,10 @@ const Cpuset = require('./libs/cpuset');
                 `urlprefix-${hostname}/ proto=${proto}`,
             ],
             port: parseInt(port),
-            address: jail.info['ip4.addr'],
+            address: jailInfo['ip4.addr'],
             check: {
                 name: `Check port ${port}`,
-                tcp: `${jail.info['ip4.addr']}:${port}`,
+                tcp: `${jailInfo['ip4.addr']}:${port}`,
                 interval: '30s',
                 timeout: '1s',
             },

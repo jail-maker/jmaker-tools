@@ -15,49 +15,34 @@ const configFile = './config.yml';
 const configContent = fs.readFileSync(configFile, 'utf-8');
 const config = yaml.safeLoad(configContent);
 
-const argv = yargs
-    .option('from', { default: null })
-    .option('to')
-    .demandOption(['to'])
-    .argv;
-
 let stream = process.stdin;
-
-
-function readStdin() {
-
-    return new Promise((res, rej) => {
-
-        let buffer = '';
-
-        stream.on('readable', _ => {
-
-            let chunk;
-
-            while (null !== (chunk = stream.read())) {
-
-                buffer += chunk.toString();
-
-            }
-
-        });
-
-        stream.on('end', _ => {
-
-            res(buffer);
-
-        });
-
-    });
-
-}
-
 
 (async _ => {
 
-    let input = await readStdin();
-    let data = JSON.parse(input);
+    const argv = yargs
+        .option('from', { default: null })
+        .option('to')
+        .demandOption(['to'])
+        .argv;
+
     let toDataset = path.join(config.containersLocation, argv.to);
+    let diffData = {};
+
+    {
+        let toPath = zfs.get(toDataset, 'mountpoint');
+        toPath = path.join(toPath, `.zfs/snapshot/${config.specialSnapName}/`);
+        let fromPath = '';
+
+        if (argv.from) {
+
+            const fromDataset = path.join(config.containersLocation, argv.from);
+            fromPath = zfs.get(fromDataset, 'mountpoint');
+            fromPath = path.join(fromPath, `.zfs/snapshot/${config.specialSnapName}/`);
+
+        } else fromPath = '/empty/';
+
+        diffData = await diff(toPath, fromPath);
+    }
 
     if (!zfs.has(toDataset))
         throw new Error(`dataset "${toDataset}" not exists.`);
@@ -97,12 +82,12 @@ function readStdin() {
         group: '',
     };
 
-    for (let key in data) {
+    for (let key in diffData) {
 
         let file = path.join(prefix, key);
         let isFolder = file.slice(-1) === '/';
 
-        let action = data[key];
+        let action = diffData[key];
 
         let stats = fs.lstatSync(file);
         let permissions = {

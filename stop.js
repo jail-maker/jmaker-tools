@@ -46,29 +46,4 @@ const redis = new Redis;
     Jail.stop(argv.name);
     fs.unlinkSync(Jail.confFileByName(argv.name));
 
-    let services = [];
-    services.push(manifest.rules['host.hostname']);
-
-    for (let key in manifest.services) {
-
-        let hostname = `${key}.${manifest.rules['host.hostname']}`;
-        services.push(hostname);
-
-    }
-
-    services.forEach(async service => {
-
-        try {
-
-            await consul.agent.service.deregister(service);
-
-        } catch (error) {
-
-            console.log('service not registred');
-            console.log(error);
-
-        }
-
-    });
-
 })().catch(error => { console.log(error); });

@@ -4,7 +4,7 @@ const fs = require('fs');
 const yaml = require('js-yaml');
 const path = require('path');
 
-const FILE = './config.yml';
+const FILE = `${__dirname}/../config.yml`;
 
 class Config { }
 

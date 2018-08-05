@@ -25,6 +25,8 @@ class RunCommand extends CommandInterface {
 
         let env = manifest.env;
 
+        if (!Array.isArray(args)) args = [args];
+
         let rules = manifest.rules['exec.start'];
         if (!Array.isArray(rules)) rules = rules ? [rules] : [];
         manifest.rules['exec.start'] = rules;
@@ -37,7 +39,7 @@ class RunCommand extends CommandInterface {
 
         }
 
-        command.push(args);
+        command.push(args.join(' '));
 
         rules.push(command.join(' && '));
 

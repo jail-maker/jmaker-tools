@@ -15,6 +15,11 @@ const mountFdescfs = require('../libs/mount-fdescfs');
 const mountProcfs = require('../libs/mount-procfs');
 const umount = require('../libs/umount');
 const config = require('../libs/config');
+const Jail = require('../libs/jail');
+const JailConfig = require('../libs/jails/config-file');
+const ruleViewVisitor = require('../libs/jails/rule-view-visitor');
+
+const MANIFEST_NAME = 'manifest.json';
 
 module.exports.desc = 'command for create container';
 
@@ -48,118 +53,80 @@ module.exports.handler = async argv => {
 
     console.log(newDataset);
 
-    if (manifest.from) {
+    if (!manifest.from) 
+        throw new Error(`field "from" is empty.`);
 
-        await invoker.submitOrUndoAll({
+    let fromDataset = "";
 
-            async exec() {
+    {
+        let regex = /^(\w+)(\-([\w\.]+))?$/;
+        let matches = manifest.from.match(regex);
 
-                let regex = /^(\w+)(\-([\w\.]+))?$/;
-                let matches = manifest.from.match(regex);
-                if (!matches) throw new Error('incorrect from.');
+        if (!matches) throw new Error('incorrect from.');
 
-                let [_1, from, _2, version] = matches;
-
-
-                let fromDataset = path.join(config.containersLocation, from);
-
-                if (!zfs.has(fromDataset)) {
-
-                    console.log(`dataset for container "${from} not exists."`)
-                    console.log(`fetching container "${manifest.from} from remote repository."`)
-
-                    let result = spawnSync('pkg', [
-                        'install', '-y', manifest.from,
-                    ], { stdio: 'inherit' });
-
-                    if (result.status) {
-
-                        let msg = `container "${manifest.from}" not found in remote repository.`;
-                        throw new Error(msg);
-
-                    }
-
-                }
-
-                zfs.ensureSnapshot(fromDataset, config.specialSnapName);
-                zfs.clone(fromDataset, config.specialSnapName, newDataset);
-
-            },
-            async unExec() {
-
-                zfs.destroy(newDataset);
-
-            },
-
-        });
-
-    } else {
-
-        await invoker.submitOrUndoAll({
-
-            async exec() {
-
-                zfs.create(newDataset);
-
-            },
-            async unExec() {
-
-                zfs.destroy(newDataset);
-
-            },
-
-        });
-
+        let [_1, from, _2, version] = matches;
+        fromDataset = path.join(config.containersLocation, from);
     }
 
+    if (!zfs.has(fromDataset)) {
+
+        console.log(`dataset for container "${from}" not exists.`)
+        console.log(`fetching container "${manifest.from}" from remote repository.`)
+
+        let result = spawnSync('pkg', [
+            'install', '-y', manifest.from,
+        ], { stdio: 'inherit' });
+
+        if (result.status) {
+
+            let msg = `container "${manifest.from}" not found in remote repository.`;
+            throw new Error(msg);
+
+        }
+    
+    }
+
+    zfs.ensureSnapshot(fromDataset, config.specialSnapName);
+    zfs.clone(fromDataset, config.specialSnapName, newDataset);
+
     let datasetPath = zfs.get(newDataset, 'mountpoint');
+    let fromDatasetPath = zfs.get(fromDataset, 'mountpoint');
+    let manifestOutPath = path.join(datasetPath, MANIFEST_NAME);
+    let fromManifestOutPath = path.join(fromDatasetPath, MANIFEST_NAME);
+    let srcContextPath = path.resolve(argv.context);
     let contextPath = path.join(datasetPath, '/media/context');
+    let fromManifest = ManifestFactory.fromJsonFile(fromManifestOutPath);
+    let jailConfigFile = Jail.confFileByName(manifest.name);
 
     {
 
-        let dev = path.join(datasetPath, '/dev');
-        let fd = path.join(datasetPath, '/dev/fd');
-        let proc = path.join(datasetPath, '/proc');
-        let srcContextPath = path.resolve(argv.context);
+        let {osreldate, osrelease} = fromManifest.rules;
 
-        await fse.ensureDir(dev);
-        await fse.ensureDir(fd);
-        await fse.ensureDir(proc);
-        await fse.ensureDir(contextPath);
+        if (!osreldate || !osrelease)
+            throw new Error('not set "osreldate" or "osrelease" in base container.');
 
-        let exitHandler = _ => {
-
-            umount(dev, true);
-            umount(fd, true);
-            umount(proc, true);
-            umount(contextPath, true);
-
-        };
-
-        process.on('exit', exitHandler);
-        process.on('SIGINT', async _ => { await invoker.undoAll(); });
-        process.on('SIGTERM', async _ => { await invoker.undoAll(); });
-
-        await invoker.submitOrUndoAll({
-
-            async exec() {
-
-                mountDevfs(dev);
-                mountFdescfs(fd);
-                mountProcfs(proc);
-                mountNullfs(srcContextPath, contextPath, ['ro']);
-
-            },
-            async unExec() {
-
-                process.removeListener('exit', exitHandler);
-                exitHandler();
-
-            }
-
-        });
+        manifest.rules.osreldate = osreldate;
+        manifest.rules.osrelease = osrelease;
+        manifest.rules.persist = true;
 
     }
+
+    let rules = {...manifest.rules};
+
+    rules['ip4.addr'] = [];
+    rules['ip6.addr'] = [];
+    rules.ip4 = "inherit";
+    rules.ip6 = "inherit";
+    rules.path = datasetPath;
+
+    let jailConfig = new JailConfig(manifest.name, rules);
+    jailConfig.accept(ruleViewVisitor);
+    jailConfig.save(jailConfigFile);
+
+    await fse.ensureDir(contextPath);
+    mountNullfs(srcContextPath, contextPath, ['ro']);
+
+    Jail.start(manifest.name);
 
     {
 
@@ -177,28 +144,32 @@ module.exports.handler = async argv => {
 
     }
 
-    for (let index in manifest.building) {
+    // for (let index in manifest.building) {
 
-        let obj = manifest.building[index];
-        let commandName = Object.keys(obj)[0];
-        let args = obj[commandName];
+    //     let obj = manifest.building[index];
+    //     let commandName = Object.keys(obj)[0];
+    //     let args = obj[commandName];
 
-        let commandPath = `../builder-commands/${commandName}-command`;
-        let CommandClass = require(commandPath);
-        let command = new CommandClass({
-            index,
-            dataset: newDataset,
-            datasetPath,
-            context: contextPath,
-            manifest,
-            args,
-        });
+    //     let commandPath = `../builder-commands/${commandName}-command`;
+    //     let CommandClass = require(commandPath);
+    //     let command = new CommandClass({
+    //         index,
+    //         dataset: newDataset,
+    //         datasetPath,
+    //         context: contextPath,
+    //         manifest,
+    //         args,
+    //     });
 
-        await invoker.submitOrUndoAll(command);
+    //     await invoker.submitOrUndoAll(command);
 
-    }
+    // }
 
-    manifest.toFile(path.join(datasetPath, 'manifest.json'))
+    Jail.stop(manifest.name);
+
+    umount(contextPath, true);
+
+    manifest.toFile(manifestOutPath);
 
     zfs.snapshot(newDataset, config.specialSnapName);
 

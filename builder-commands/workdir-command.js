@@ -12,10 +12,7 @@ class WorkdirCommand extends CommandInterface {
 
         super();
 
-        let { manifest } = receiver;
         this._receiver = receiver;
-        this._oldWorkdir = manifest.workdir;
-        this._workdir = null;
         this._commitName= null;
 
     }
@@ -39,14 +36,12 @@ class WorkdirCommand extends CommandInterface {
         await fse.ensureDir(dir);
 
         manifest.workdir = workdir;
-        this._workdir = workdir;
 
     }
 
     async unExec() {
 
         let { manifest, dataset } = this._receiver;
-        manifest.workdir = this._oldWorkdir;
 
         if (this._commitName) {
 

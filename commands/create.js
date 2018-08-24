@@ -144,26 +144,26 @@ module.exports.handler = async argv => {
 
     }
 
-    // for (let index in manifest.building) {
+    for (let index in manifest.building) {
 
-    //     let obj = manifest.building[index];
-    //     let commandName = Object.keys(obj)[0];
-    //     let args = obj[commandName];
+        let obj = manifest.building[index];
+        let commandName = Object.keys(obj)[0];
+        let args = obj[commandName];
 
-    //     let commandPath = `../builder-commands/${commandName}-command`;
-    //     let CommandClass = require(commandPath);
-    //     let command = new CommandClass({
-    //         index,
-    //         dataset: newDataset,
-    //         datasetPath,
-    //         context: contextPath,
-    //         manifest,
-    //         args,
-    //     });
+        let commandPath = `../builder-commands/${commandName}-command`;
+        let CommandClass = require(commandPath);
+        let command = new CommandClass({
+            index,
+            dataset: newDataset,
+            datasetPath,
+            context: contextPath,
+            manifest,
+            args,
+        });
 
-    //     await invoker.submitOrUndoAll(command);
+        await invoker.submitOrUndoAll(command);
 
-    // }
+    }
 
     Jail.stop(manifest.name);
 

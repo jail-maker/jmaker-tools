@@ -38,12 +38,10 @@ class RunCommand extends CommandInterface {
         await (new Promise((res, rej) => {
 
             let child = spawn(
-                'chroot',
-                [
-                    datasetPath, "sh", "-c",
-                    `cd ${manifest.workdir} && ${command}`,
-                ],
+                'jexec',
+                [ manifest.name, `cd ${manifest.workdir} && ${command}` ],
                 {
+                    shell: true,
                     env: env,
                     cwd: '/',
                     stdio: 'inherit',

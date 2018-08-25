@@ -166,11 +166,8 @@ module.exports.handler = async argv => {
     }
 
     Jail.stop(manifest.name);
-
     umount(contextPath, true);
-
     manifest.toFile(manifestOutPath);
-
     zfs.snapshot(newDataset, config.specialSnapName);
 
 }

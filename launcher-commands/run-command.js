@@ -3,6 +3,7 @@
 const path = require('path');
 const config = require('../libs/config');
 const CommandInterface = require('../libs/command-interface');
+const { spawn } = require('child_process');
 
 class RunCommand extends CommandInterface {
 
@@ -23,25 +24,37 @@ class RunCommand extends CommandInterface {
             dataset,
         } = this._receiver;
 
-        let env = manifest.env;
+        let env = Object.assign({}, process.env, manifest.env);
+        let command = args;
 
-        if (!Array.isArray(args)) args = [args];
+        await (new Promise((res, rej) => {
 
-        let rules = manifest.rules['exec.start'];
-        if (!Array.isArray(rules)) rules = rules ? [rules] : [];
-        manifest.rules['exec.start'] = rules;
+            let child = spawn(
+                'jexec',
+                [
+                    manifest.name,
+                    `/bin/sh`, `-c`, `cd ${manifest.workdir} && ${command}` 
+                ],
+                {
+                    env: env,
+                    cwd: '/',
+                    stdio: 'inherit',
+                }
+            );
 
-        let command = [`cd ${manifest.workdir}`];
-        for (let key in env) {
+            child.on('close', code => {
 
-            let value = env[key];
-            command.push(`export ${key}=${value}`);
+                if (code) {
 
-        }
+                    let error = new Error(`Error execution command: "${command}".`);
+                    error.exitCode = code;
+                    rej(error);
 
-        command.push(args.join(' '));
+                } else res(code);
 
-        rules.push(command.join(' && '));
+            });
+
+        }));
 
     }
 

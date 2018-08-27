@@ -22,7 +22,7 @@ building:
   - env:
       ASSUME_ALWAYS_YES: "yes"
 
-  # - volume: { name: "pkg", to: "/var/cache/pkg" }
+  - volume: { name: "pkg", to: "/var/cache/pkg" }
   - run: "pkg install -y -f nginx"
 
   - workdir: "/"

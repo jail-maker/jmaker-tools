@@ -8,12 +8,14 @@ const path = require('path');
 const yargs = require('yargs');
 const uuid4 = require('uuid/v4');
 const { spawn, spawnSync } = require('child_process');
+const { ensureDir, copy, pathExists } = require('fs-extra');
+const mountNullfs = require('../libs/mount-nullfs');
 const zfs = require('../libs/zfs');
 const ManifestFactory = require('../libs/manifest-factory');
 const CommandInvoker = require('../libs/command-invoker');
 const config = require('../libs/config');
 const Jail = require('../libs/jail');
-const ConfigFile = require('../libs/jails/config-file.js');
+const JailConfig = require('../libs/jails/config-file');
 const ruleViewVisitor = require('../libs/jails/rule-view-visitor');
 const autoIfaceVisitor = require('../libs/jails/auto-iface-visitor');
 const autoIpVisitor = require('../libs/jails/auto-ip-visitor');
@@ -37,10 +39,10 @@ module.exports.builder = yargs => {
             type: 'string',
             describe: 'name of container.'
         })
-        .option('volume', {
+        .option('mount', {
             type: 'array',
             default: [],
-            describe: 'volumes for container.\n Example: ./:/mnt/volume /var/db:/var/db'
+            describe: 'bind mounts for container.\n Example: ./:/mnt/mount /var/db:/var/db'
         })
         .demandOption(['name']);
 
@@ -61,6 +63,11 @@ module.exports.handler = async argv => {
     let clonedManifest = manifest.clone();
     let invoker = new CommandInvoker;
     let containerName = argv.name;
+    let jailConfigFile = Jail.confFileByName(manifest.name);
+
+    zfs.ensureSnapshot(dataset, config.specialSnapName);
+    zfs.rollback(dataset, config.specialSnapName);
+
 
     argv.rules
         .forEach(item => {
@@ -70,18 +77,34 @@ module.exports.handler = async argv => {
 
         });
 
-    argv.volume
-        .forEach(item => {
+    {
+        let promises = argv.mount
+            .map(async item => {
 
-            let [from, to] = item.split(':');
-            if (!to && from) [to, from] = [from, to];
+                let [from, to] = item.split(':');
+                if (!to && from) [to, from] = [from, to];
 
-            manifest.starting.push({ volume: {from, to}});
+                from = path.resolve(from);
+                to = path.resolve('/', to);
 
-        });
+                console.log(from, to);
 
-    zfs.ensureSnapshot(dataset, config.specialSnapName);
-    zfs.rollback(dataset, config.specialSnapName);
+                let mountPath = path.join(datasetPath, to);
+
+                await ensureDir(mountPath);
+
+                if (!(await pathExists(from))) {
+
+                    await copy(path.join(mountPath, '/'), path.join(src, '/'));
+
+                }
+
+                mountNullfs(from, mountPath);
+
+            });
+
+        await Promise.all(promises);
+    }
 
     if (manifest['resolv-sync']) {
 
@@ -95,6 +118,15 @@ module.exports.handler = async argv => {
         console.log('done');
 
     }
+
+    manifest.rules.persist = true;
+    manifest.rules.path = datasetPath;
+
+    let jailConfig = new JailConfig(manifest.name, manifest.rules);
+    jailConfig.accept(ruleViewVisitor);
+    jailConfig.save(jailConfigFile);
+
+    Jail.start(manifest.name);
 
     for (let index in manifest.starting) {
 
@@ -116,93 +148,52 @@ module.exports.handler = async argv => {
 
     }
 
-    if (manifest.quota) zfs.set(dataset, 'quota', manifest.quota);
-
-    let configObj = null;
-
-    {
-
-        let rules = Object.assign({}, manifest.rules);
-        rules.path = datasetPath;
-        configObj = new ConfigFile(manifest.name, rules);
-
-    }
-
-    {
-
-        let command = {
-            async exec() {
-
-                configObj
-                    .accept(autoIfaceVisitor)
-                    .accept(autoIpVisitor)
-                    .accept(ruleViewVisitor);
-
-            },
-            async unExec() {}
-        };
-
-        await invoker.submitOrUndoAll(command);
-
-    }
-
-    configObj.save(Jail.confFileByName(manifest.name));
-
-    console.log('rctl... ');
-    let rctlObj = new Rctl({
-        rulset: manifest.rctl,
-        jailName: manifest.name
-    });
-
-    await invoker.submitOrUndoAll(rctlObj);
-    console.log('done\n');
-
-    {
-        console.log('jail starting...\n');
-
-        let command = {
-            exec: async _ => Jail.start(manifest.name),
-            unExec: async _ => Jail.stop(manifest.name),
-        };
-
-        await invoker.submitOrUndoAll(command);
-        console.log('done\n');
-    }
-
     let jailInfo = Jail.getInfo(manifest.name);
 
-    if (manifest.cpus) {
+    // if (manifest.quota) zfs.set(dataset, 'quota', manifest.quota);
 
-        let cpus = parseInt(manifest.cpus);
-        let osCpus = os.cpus().length;
-        cpus = cpus < osCpus ? cpus : osCpus;
+    // console.log('rctl... ');
+    // let rctlObj = new Rctl({
+    //     rulset: manifest.rctl,
+    //     jailName: manifest.name
+    // });
 
-        if (cpus === 1) manifest.cpuset = '0';
-        else manifest.cpuset = `0-${cpus - 1}`;
+    // await invoker.submitOrUndoAll(rctlObj);
+    // console.log('done\n');
 
-    }
 
-    if (manifest.cpuset !== false) {
+    // if (manifest.cpus) {
 
-        console.log('cpuset... ');
+    //     let cpus = parseInt(manifest.cpus);
+    //     let osCpus = os.cpus().length;
+    //     cpus = cpus < osCpus ? cpus : osCpus;
 
-        try {
+    //     if (cpus === 1) manifest.cpuset = '0';
+    //     else manifest.cpuset = `0-${cpus - 1}`;
 
-            let cpuset = new Cpuset({
-                jid: jailInfo.jid, value: manifest.cpuset 
-            });
-            await invoker.submitOrUndoAll(cpuset);
+    // }
 
-        } catch (error) {
+    // if (manifest.cpuset !== false) {
 
-            await invoker.undoAll();
-            throw error;
+    //     console.log('cpuset... ');
 
-        }
+    //     try {
 
-        console.log('done\n');
+    //         let cpuset = new Cpuset({
+    //             jid: jailInfo.jid, value: manifest.cpuset 
+    //         });
+    //         await invoker.submitOrUndoAll(cpuset);
 
-    }
+    //     } catch (error) {
+
+    //         await invoker.undoAll();
+    //         throw error;
+
+    //     }
+
+    //     console.log('done\n');
+
+    // }
 
     {
         let redis = new Redis;

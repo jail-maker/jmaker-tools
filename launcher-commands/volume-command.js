@@ -44,9 +44,10 @@ class VolumeCommand extends CommandInterface {
             args = {},
         } = this._receiver;
 
-        zfs.ensureDataset(config.volumesLocation);
 
         args = this._normalizeArgs(args);
+
+        zfs.ensureDataset(config.volumesLocation);
 
         if (args.to === undefined)
             throw new Error('volume argument "to" is undefined.');
@@ -57,51 +58,23 @@ class VolumeCommand extends CommandInterface {
 
         await ensureDir(mountPath);
 
-        if (args.from) {
+        if (args.name === undefined)
+            args.name = uuidv5(`${dataset} ${args.to}`, uuidv5.DNS);
 
-            if (path.isAbsolute(args.from)) {
+        let volumeDataset = path.join(config.volumesLocation, args.name);
+        if (zfs.has(volumeDataset)) {
 
-                src = path.resolve(args.from);
-
-            } else {
-
-                let volumeDataset = path.join(config.volumesLocation, args.from);
-                zfs.ensureDataset(volumeDataset);
-                src = zfs.get(volumeDataset, 'mountpoint');
-
-            }
+            src = zfs.get(volumeDataset, 'mountpoint');
 
         } else {
 
-            if (args.name === undefined)
-                args.name = uuidv5(`${dataset} ${args.to}`, uuidv5.DNS);
-
-            let volumeDataset = path.join(config.volumesLocation, args.name);
-            if (zfs.has(volumeDataset)) {
-
-                src = zfs.get(volumeDataset, 'mountpoint');
-
-            } else {
-
-                zfs.ensureDataset(volumeDataset);
-                src = zfs.get(volumeDataset, 'mountpoint');
-                await copy(path.join(mountPath, '/'), path.join(src, '/'));
-
-            }
+            zfs.ensureDataset(volumeDataset);
+            src = zfs.get(volumeDataset, 'mountpoint');
+            await copy(path.join(mountPath, '/'), path.join(src, '/'));
 
         }
 
-        let preRules = manifest.rules['exec.prestart'];
-        if (!Array.isArray(preRules)) preRules = preRules ? [preRules] : [];
-        manifest.rules['exec.prestart'] = preRules;
-
-        let postRules = manifest.rules['exec.poststop'];
-        if (!Array.isArray(postRules)) postRules = postRules ? [postRules] : [];
-        manifest.rules['exec.poststop'] = postRules;
-
-        preRules.push(`mount_nullfs ${src} ${mountPath}`);
-        postRules.push(`umount -f ${mountPath}`);
-
+        mountNullfs(src, mountPath);
 
     }
 

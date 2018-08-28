@@ -11,6 +11,7 @@ const Jail = require('../libs/jail');
 const zfs = require('../libs/zfs');
 const ManifestFactory = require('../libs/manifest-factory');
 const Redis = require('ioredis');
+const umount = require('../libs/umount');
 
 module.exports.desc = 'command for stop container';
 
@@ -28,6 +29,7 @@ module.exports.builder = yargs => {
 
 module.exports.handler = async argv => {
 
+    let redis = new Redis;
     let dataset = path.join(config.containersLocation, argv.name);
     let datasetPath = zfs.get(dataset, 'mountpoint');
     let manifestFile = path.join(datasetPath, 'manifest.json');
@@ -35,7 +37,6 @@ module.exports.handler = async argv => {
     let jailInfo = Jail.getInfo(argv.name);
 
     {
-        let redis = new Redis;
         let payload = {
             eventName: 'stoped',
             info: jailInfo,
@@ -43,10 +44,21 @@ module.exports.handler = async argv => {
         };
 
         await redis.publish('jmaker:containers:stoped', JSON.stringify(payload));
-        await redis.disconnect();
     }
 
-    Jail.stop(argv.name);
-    fs.unlinkSync(Jail.confFileByName(argv.name));
+    Jail.stop(manifest.name);
+    fs.unlinkSync(Jail.confFileByName(manifest.name));
+
+    {
+        let mounts = await redis.lrange(`jmaker:mounts:${manifest.name}`, 0, -1);
+        mounts.forEach(mountpoint => {
+
+            umount(mountpoint, true);
+
+        });
+        await redis.ltrim(`jmaker:mounts:${manifest.name}`, -1, 0);
+    }
+
+    await redis.disconnect();
 
 }

@@ -3,7 +3,6 @@
 const os = require('os');
 const fs = require('fs');
 const fse = require('fs-extra');
-const consul = require('consul')({promisify: true});
 const path = require('path');
 const yargs = require('yargs');
 const uuid4 = require('uuid/v4');
@@ -17,8 +16,6 @@ const config = require('../libs/config');
 const Jail = require('../libs/jail');
 const JailConfig = require('../libs/jails/config-file');
 const ruleViewVisitor = require('../libs/jails/rule-view-visitor');
-const autoIfaceVisitor = require('../libs/jails/auto-iface-visitor');
-const autoIpVisitor = require('../libs/jails/auto-ip-visitor');
 const Rctl = require('../libs/rctl');
 const Cpuset = require('../libs/cpuset');
 const Redis = require('ioredis');
@@ -39,10 +36,17 @@ module.exports.builder = yargs => {
             type: 'string',
             describe: 'name of container.'
         })
-        .option('mount', {
+        .option('m', {
+            alias: 'mount',
             type: 'array',
             default: [],
-            describe: 'bind mounts for container.\n Example: ./:/mnt/mount /var/db:/var/db'
+            describe: 'host folder mount in container.\n Example: ./:/mnt/mount',
+        })
+        .option('vol', {
+            alias: 'volume',
+            type: 'array',
+            default: [],
+            describe: 'volume mount in container.\n Example: my-volume:/mnt/my-volume',
         })
         .demandOption(['name']);
 
@@ -56,6 +60,7 @@ module.exports.handler = async argv => {
 
     }
 
+    let redis = new Redis;
     let dataset = path.join(config.containersLocation, argv.name);
     let datasetPath = zfs.get(dataset, 'mountpoint');
     let manifestFile = path.join(datasetPath, 'manifest.json');
@@ -67,7 +72,6 @@ module.exports.handler = async argv => {
 
     zfs.ensureSnapshot(dataset, config.specialSnapName);
     zfs.rollback(dataset, config.specialSnapName);
-
 
     argv.rules
         .forEach(item => {
@@ -82,10 +86,10 @@ module.exports.handler = async argv => {
             .map(async item => {
 
                 let [from, to] = item.split(':');
-                if (!to && from) [to, from] = [from, to];
+                if (!to && from) to = from;
 
                 from = path.resolve(from);
-                to = path.resolve('/', to);
+                to = path.resolve(to);
 
                 console.log(from, to);
 
@@ -100,6 +104,31 @@ module.exports.handler = async argv => {
                 }
 
                 mountNullfs(from, mountPath);
+                await redis.lpush(`jmaker:mounts:${manifest.name}`, mountPath);
+
+            });
+
+        await Promise.all(promises);
+    }
+
+    {
+        let promises = argv.volume
+            .map(async item => {
+
+                let [volume, to] = item.split(':');
+                to = path.resolve(to);
+                let mountPath = path.join(datasetPath, to);
+
+                await ensureDir(mountPath);
+
+                let volumeDataset = path.join(config.volumesLocation, volume);
+                if (!zfs.has(volumeDataset)) 
+                    throw new Error(`volume "${volume}" not found.`);
+
+                let from = zfs.get(volumeDataset, 'mountpoint');
+
+                mountNullfs(from, mountPath);
+                await redis.lpush(`jmaker:mounts:${manifest.name}`, mountPath);
 
             });
 
@@ -141,6 +170,7 @@ module.exports.handler = async argv => {
             dataset,
             datasetPath,
             manifest,
+            redis,
             args,
         });
 
@@ -196,7 +226,6 @@ module.exports.handler = async argv => {
     // }
 
     {
-        let redis = new Redis;
         let payload = {
             eventName: 'started',
             info: jailInfo,
@@ -204,8 +233,9 @@ module.exports.handler = async argv => {
         }
 
         await redis.publish('jmaker:containers:started', JSON.stringify(payload));
-        await redis.disconnect();
     }
+
+    await redis.disconnect();
 
 }
 

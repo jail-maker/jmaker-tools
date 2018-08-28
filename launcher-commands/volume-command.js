@@ -42,6 +42,7 @@ class VolumeCommand extends CommandInterface {
             datasetPath,
             manifest,
             args = {},
+            redis,
         } = this._receiver;
 
 
@@ -75,6 +76,7 @@ class VolumeCommand extends CommandInterface {
         }
 
         mountNullfs(src, mountPath);
+        await redis.lpush(`jmaker:mounts:${manifest.name}`, mountPath);
 
     }
 

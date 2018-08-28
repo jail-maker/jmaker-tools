@@ -2,7 +2,7 @@
 
 const os = require('os');
 const fs = require('fs');
-const fse = require('fs-extra');
+const { ensureDir, copy, pathExists } = require('fs-extra');
 const consul = require('consul')({promisify: true});
 const path = require('path');
 const yargs = require('yargs');
@@ -13,10 +13,9 @@ const ManifestFactory = require('../libs/manifest-factory');
 const CommandInvoker = require('../libs/command-invoker');
 const config = require('../libs/config');
 const Jail = require('../libs/jail');
-const ConfigFile = require('../libs/jails/config-file.js');
+const JailConfig = require('../libs/jails/config-file');
 const ruleViewVisitor = require('../libs/jails/rule-view-visitor');
-const autoIfaceVisitor = require('../libs/jails/auto-iface-visitor');
-const autoIpVisitor = require('../libs/jails/auto-ip-visitor');
+const mountNullfs = require('../libs/mount-nullfs');
 const Rctl = require('../libs/rctl');
 const Cpuset = require('../libs/cpuset');
 const Redis = require('ioredis');
@@ -45,20 +44,23 @@ module.exports.builder = yargs => {
             type: 'boolean',
             describe: 'remove container after run.'
         })
-        .option('volume', {
+        .option('m', {
+            alias: 'mount',
             type: 'array',
             default: [],
-            describe: 'volumes for container.\n Example: ./:/mnt/volume /var/db:/var/db'
+            describe: 'mount host folder in container.\n Example: ./:/mnt/my-folder'
+        })
+        .option('vol', {
+            alias: 'volume',
+            type: 'array',
+            default: [],
+            describe: 'mount volume in container.\n Example: my-volume:/mnt/volume'
         })
         .demandOption(['from']);
 
 }
 
 module.exports.handler = async argv => {
-
-    // console.log(argv);
-    // console.log(argv._.slice(1))
-    // return;
 
     let commandArgs = argv._.slice(1);
     let containerName = argv.n ? argv.n : uuid4();
@@ -74,9 +76,15 @@ module.exports.handler = async argv => {
 
     manifest.name = containerName;
 
+    let jailConfigFile = Jail.confFileByName(manifest.name);
     let clonedManifest = manifest.clone();
     let invoker = new CommandInvoker;
-    // let containerName = argv.from;
+    let redis = new Redis;
+
+    manifest.toFile(manifestFile);
+
+    zfs.ensureSnapshot(dataset, config.specialSnapName);
+    zfs.rollback(dataset, config.specialSnapName);
 
     argv.rules
         .forEach(item => {
@@ -86,18 +94,59 @@ module.exports.handler = async argv => {
 
         });
 
-    argv.volume
-        .forEach(item => {
+    {
+        let promises = argv.mount
+            .map(async item => {
 
-            let [from, to] = item.split(':');
-            if (!to && from) [to, from] = [from, to];
+                let [from, to] = item.split(':');
+                if (!to && from) to = from;
 
-            manifest.starting.push({ volume: {from, to}});
+                from = path.resolve(from);
+                to = path.resolve(to);
 
-        });
+                console.log(from, to);
 
-    zfs.ensureSnapshot(dataset, config.specialSnapName);
-    zfs.rollback(dataset, config.specialSnapName);
+                let mountPath = path.join(datasetPath, to);
+
+                await ensureDir(mountPath);
+
+                if (!(await pathExists(from))) {
+
+                    await copy(path.join(mountPath, '/'), path.join(src, '/'));
+
+                }
+
+                mountNullfs(from, mountPath);
+                await redis.lpush(`jmaker:mounts:${manifest.name}`, mountPath);
+
+            });
+
+        await Promise.all(promises);
+    }
+
+    {
+        let promises = argv.volume
+            .map(async item => {
+
+                let [volume, to] = item.split(':');
+                to = path.resolve(to);
+                let mountPath = path.join(datasetPath, to);
+
+                await ensureDir(mountPath);
+
+                let volumeDataset = path.join(config.volumesLocation, volume);
+                if (!zfs.has(volumeDataset)) 
+                    throw new Error(`volume "${volume}" not found.`);
+
+                let from = zfs.get(volumeDataset, 'mountpoint');
+
+                mountNullfs(from, mountPath);
+                await redis.lpush(`jmaker:mounts:${manifest.name}`, mountPath);
+
+            });
+
+        await Promise.all(promises);
+    }
 
     if (manifest['resolv-sync']) {
 
@@ -112,6 +161,15 @@ module.exports.handler = async argv => {
 
     }
 
+    manifest.rules.persist = true;
+    manifest.rules.path = datasetPath;
+
+    let jailConfig = new JailConfig(manifest.name, manifest.rules);
+    jailConfig.accept(ruleViewVisitor);
+    jailConfig.save(jailConfigFile);
+
+    Jail.start(manifest.name);
+
     let commandPath = `../launcher-commands/run-command`;
     let CommandClass = require(commandPath);
     let command = new CommandClass({
@@ -119,121 +177,15 @@ module.exports.handler = async argv => {
         dataset,
         datasetPath,
         manifest,
+        redis,
         args: commandArgs,
     });
 
     await invoker.submitOrUndoAll(command);
 
-    // for (let index in manifest.starting) {
-
-    //     let obj = manifest.starting[index];
-    //     let commandName = Object.keys(obj)[0];
-    //     let args = obj[commandName];
-
-    //     let commandPath = `../launcher-commands/${commandName}-command`;
-    //     let CommandClass = require(commandPath);
-    //     let command = new CommandClass({
-    //         index,
-    //         dataset,
-    //         datasetPath,
-    //         manifest,
-    //         args,
-    //     });
-
-    //     await invoker.submitOrUndoAll(command);
-
-    // }
-
-    if (manifest.quota) zfs.set(dataset, 'quota', manifest.quota);
-
-    let configObj = null;
-
-    {
-
-        let rules = Object.assign({}, manifest.rules);
-        rules.path = datasetPath;
-        configObj = new ConfigFile(manifest.name, rules);
-
-    }
-
-    {
-
-        let command = {
-            async exec() {
-
-                configObj
-                    .accept(autoIfaceVisitor)
-                    .accept(autoIpVisitor)
-                    .accept(ruleViewVisitor);
-
-            },
-            async unExec() {}
-        };
-
-        await invoker.submitOrUndoAll(command);
-
-    }
-
-    configObj.save(Jail.confFileByName(manifest.name));
-
-    console.log('rctl... ');
-    let rctlObj = new Rctl({
-        rulset: manifest.rctl,
-        jailName: manifest.name
-    });
-
-    await invoker.submitOrUndoAll(rctlObj);
-    console.log('done\n');
-
-    {
-        console.log('jail starting...\n');
-
-        let command = {
-            exec: async _ => Jail.start(manifest.name),
-            unExec: async _ => Jail.stop(manifest.name),
-        };
-
-        await invoker.submitOrUndoAll(command);
-        console.log('done\n');
-    }
-
     let jailInfo = Jail.getInfo(manifest.name);
 
-    if (manifest.cpus) {
-
-        let cpus = parseInt(manifest.cpus);
-        let osCpus = os.cpus().length;
-        cpus = cpus < osCpus ? cpus : osCpus;
-
-        if (cpus === 1) manifest.cpuset = '0';
-        else manifest.cpuset = `0-${cpus - 1}`;
-
-    }
-
-    if (manifest.cpuset !== false) {
-
-        console.log('cpuset... ');
-
-        try {
-
-            let cpuset = new Cpuset({
-                jid: jailInfo.jid, value: manifest.cpuset 
-            });
-            await invoker.submitOrUndoAll(cpuset);
-
-        } catch (error) {
-
-            await invoker.undoAll();
-            throw error;
-
-        }
-
-        console.log('done\n');
-
-    }
-
     {
-        let redis = new Redis;
         let payload = {
             eventName: 'started',
             info: jailInfo,
@@ -241,8 +193,9 @@ module.exports.handler = async argv => {
         }
 
         await redis.publish('jmaker:containers:started', JSON.stringify(payload));
-        await redis.disconnect();
     }
+
+    await redis.disconnect();
 
 }
 

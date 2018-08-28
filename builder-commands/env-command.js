@@ -30,7 +30,7 @@ class EnvCommand extends CommandInterface {
 
     async unExec() {
 
-        let { manifest } = receiver;
+        let { manifest } = this._receiver;
         manifest.env = this._env;
 
     }

@@ -80,7 +80,7 @@ module.exports.handler = async argv => {
     lines = [
         // `@postexec zfs snapshot ${toDataset}@${config.specialSnapName}`,
         // `@postunexec zfs destroy -R ${toDataset}`,
-        `@postexec zfs inherit ${to}`,
+        `@postexec zfs inherit mountpoint ${to}`,
         `@postexec zfs snapshot ${to}@$JMAKER_SPECIAL_SNAP_NAME`,
         `@preunexec zfs set mountpoint=${toMountpoint} ${to}`,
         `@postunexec zfs destroy -Rf ${to}`,

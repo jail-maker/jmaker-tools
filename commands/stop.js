@@ -56,7 +56,7 @@ module.exports.handler = async argv => {
             umount(mountpoint, true);
 
         });
-        await redis.ltrim(`jmaker:mounts:${manifest.name}`, -1, 0);
+        await redis.del(`jmaker:mounts:${manifest.name}`);
     }
 
     await redis.disconnect();

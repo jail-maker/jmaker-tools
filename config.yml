@@ -1,8 +1,0 @@
----
-reponame: null
-maintainer: "con29rus@live.ru"
-
-containersLocation: "zroot/jmaker/containers"
-volumesLocation: "zroot/jmaker/volumes"
-packagesLocation: "zroot/jmaker/packages"
-specialSnapName: "forks"

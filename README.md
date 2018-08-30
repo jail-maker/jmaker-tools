@@ -8,7 +8,6 @@
 - rsync
 - node >= 9.1
 - yarn
-- [check_ip](https://github.com/jail-maker/check_ip) -
 for automatically getting ip addresses
 
 file system preparation:

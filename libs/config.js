@@ -4,9 +4,16 @@ const fs = require('fs');
 const path = require('path');
 const { camel } = require('case');
 
+const ENV_PREFIX = 'JMAKER';
+const ENV_REQUIRED = [
+    'JMAKER_CONTAINERS_LOCATION',
+];
+
 class Config {
 
     constructor() {
+
+        this._checkRequired();
 
         this.reponame = null;
         this.maintainer = "anonymous@localhost";
@@ -19,9 +26,20 @@ class Config {
 
     }
 
+    _checkRequired() {
+
+        ENV_REQUIRED.forEach(key => {
+
+            if (process.env[key] === undefined)
+                throw new Error(`environment variable "${key}" is not set.`);
+
+        });
+
+    }
+
     _loadEnv() {
 
-        let exp = /^JMAKER/;
+        let exp = new REgExp(`^${ENV_PREFIX}`);
 
         Object.keys(process.env)
             .forEach(key => {

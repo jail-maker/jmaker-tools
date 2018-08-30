@@ -16,13 +16,13 @@ zfs create -p -o mountpoint=/usr/local/jmaker/volumes zroot/jmaker/volumes
 zfs create -p -o mountpoint=/usr/local/jmaker/packages zroot/jmaker/packages
 ```
 
-tune shell profile file(optional):
+tune shell profile file:
 ```sh
-export JMAKER_MAINTAINER=name@domain.com
-export JMAKER_CONTAINERS_LOCATION=zroot/jmaker/containers
-export JMAKER_VOLUMES_LOCATION=zroot/jmaker/volumes
-export JMAKER_PACKAGES_LOCATION=zroot/jmaker/volumes
-export JMAKER_SPECIAL_SNAP_NAME=forks
+export JMAKER_CONTAINERS_LOCATION=zroot/jmaker/containers #required
+export JMAKER_VOLUMES_LOCATION=zroot/jmaker/volumes       #optional
+export JMAKER_PACKAGES_LOCATION=zroot/jmaker/packages     #optional
+export JMAKER_SPECIAL_SNAP_NAME=forks                     #optional
+export JMAKER_MAINTAINER=name@domain.com                  #optional
 ```
 
 tune in /boot/loader.conf:

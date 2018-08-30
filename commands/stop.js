@@ -3,7 +3,6 @@
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
-const consul = require('consul')({promisify: true});
 const yargs = require('yargs');
 const { spawn, spawnSync } = require('child_process');
 const config = require('../libs/config');

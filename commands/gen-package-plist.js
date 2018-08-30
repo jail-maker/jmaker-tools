@@ -46,6 +46,8 @@ module.exports.handler = async argv => {
         throw new Error(`dataset "${toDataset}" not exists.`);
 
     let lines = [];
+    let to = `$JMAKER_CONTAINERS_LOCATION/${argv.to}`;
+    let toMountpoint = zfs.get(toDataset, 'mountpoint');
 
     if (argv.from) {
 
@@ -54,21 +56,34 @@ module.exports.handler = async argv => {
         if (!zfs.has(fromDataset))
             throw new Error(`dataset "${fromDataset}" not exists.`);
 
+        let from = `$JMAKER_CONTAINERS_LOCATION/${argv.from}`;
+        let to = `$JMAKER_CONTAINERS_LOCATION/${argv.to}`;
+
         lines = [
-            `@preexec zfs clone ${fromDataset}@${config.specialSnapName} ${toDataset}`,
+            // `@preexec zfs clone ${fromDataset}@${config.specialSnapName} ${toDataset}`,
+            `@preexec zfs clone ${from}@$JMAKER_SPECIAL_SNAP_NAME ${to}`,
+            `@preexec zfs set mountpoint=${toMountpoint} ${to}`,
         ];
 
     } else {
 
+        let to = `$JMAKER_CONTAINERS_LOCATION/${argv.to}`;
+
         lines = [
-            `@preexec zfs create -p ${toDataset}`,
+            // `@preexec zfs create -p ${toDataset}`,
+            `@preexec zfs create -p ${to}`,
+            `@preexec zfs set mountpoint=${toMountpoint} ${to}`,
         ];
 
     }
 
     lines = [
-        `@postexec zfs snapshot ${toDataset}@${config.specialSnapName}`,
-        `@postunexec zfs destroy -R ${toDataset}`,
+        // `@postexec zfs snapshot ${toDataset}@${config.specialSnapName}`,
+        // `@postunexec zfs destroy -R ${toDataset}`,
+        `@postexec zfs inherit ${to}`,
+        `@postexec zfs snapshot ${to}@$JMAKER_SPECIAL_SNAP_NAME`,
+        `@preunexec zfs set mountpoint=${toMountpoint} ${to}`,
+        `@postunexec zfs destroy -Rf ${to}`,
         ...lines,
     ];
 

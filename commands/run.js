@@ -3,7 +3,6 @@
 const os = require('os');
 const fs = require('fs');
 const { ensureDir, copy, pathExists } = require('fs-extra');
-const consul = require('consul')({promisify: true});
 const path = require('path');
 const yargs = require('yargs');
 const uuid4 = require('uuid/v4');

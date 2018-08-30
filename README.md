@@ -16,7 +16,7 @@ zfs create -p -o mountpoint=/usr/local/jmaker/volumes zroot/jmaker/volumes
 zfs create -p -o mountpoint=/usr/local/jmaker/packages zroot/jmaker/packages
 ```
 
-tune shell profile file:
+put in shell profile file:
 ```sh
 export JMAKER_CONTAINERS_LOCATION=zroot/jmaker/containers #required
 export JMAKER_VOLUMES_LOCATION=zroot/jmaker/volumes       #optional
@@ -25,12 +25,17 @@ export JMAKER_SPECIAL_SNAP_NAME=forks                     #optional
 export JMAKER_MAINTAINER=name@domain.com                  #optional
 ```
 
-tune in /boot/loader.conf:
+put in sudoers:
+```
+Defaults env_keep += "JMAKER_*"
+```
+
+put in /boot/loader.conf:
 ```
 kern.racct.enable=1
 ```
 
-tune in /etc/rc.conf:
+put in /etc/rc.conf:
 ```
 redis_enable="YES"
 

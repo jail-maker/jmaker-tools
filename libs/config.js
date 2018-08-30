@@ -39,7 +39,7 @@ class Config {
 
     _loadEnv() {
 
-        let exp = new REgExp(`^${ENV_PREFIX}`);
+        let exp = new RegExp(`^${ENV_PREFIX}`);
 
         Object.keys(process.env)
             .forEach(key => {

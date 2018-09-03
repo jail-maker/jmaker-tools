@@ -6,6 +6,7 @@ const fse = require('fs-extra');
 const path = require('path');
 const yargs = require('yargs');
 const uuid4 = require('uuid/v4');
+const prequest = require('request-promise-native');
 const { spawn, spawnSync } = require('child_process');
 const { ensureDir, copy, pathExists } = require('fs-extra');
 const mountNullfs = require('../libs/mount-nullfs');
@@ -47,6 +48,11 @@ module.exports.builder = yargs => {
             type: 'array',
             default: [],
             describe: 'volume mount in container.\n Example: my-volume:/mnt/my-volume',
+        })
+        .option('nat', {
+            type: 'boolean',
+            default: false,
+            describe: 'getting ip via local network agent.',
         })
         .demandOption(['name']);
 
@@ -145,6 +151,21 @@ module.exports.handler = async argv => {
         );
 
         console.log('done');
+
+    }
+
+    if (argv.nat) {
+
+        let body = await prequest.get('http://127.0.0.1:3000/api/v1/free-ip');
+        body = JSON.parse(body);
+        let {
+            iface,
+            ip,
+        } = body;
+
+        console.log(body, iface, ip);
+
+        manifest.rules['ip4.addr'] = `${iface}|${ip}`;
 
     }
 

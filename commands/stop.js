@@ -52,7 +52,11 @@ module.exports.handler = async argv => {
         let mounts = await redis.lrange(`jmaker:mounts:${manifest.name}`, 0, -1);
         mounts.forEach(mountpoint => {
 
-            umount(mountpoint, true);
+            try {
+                umount(mountpoint, true);
+            } catch (error) {
+                console.log(error);
+            }
 
         });
         await redis.del(`jmaker:mounts:${manifest.name}`);

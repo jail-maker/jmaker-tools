@@ -18,11 +18,12 @@ zfs create -p -o mountpoint=/usr/local/jmaker/packages zroot/jmaker/packages
 
 put in shell profile file:
 ```sh
-export JMAKER_CONTAINERS_LOCATION=zroot/jmaker/containers #required
-export JMAKER_VOLUMES_LOCATION=zroot/jmaker/volumes       #optional
-export JMAKER_PACKAGES_LOCATION=zroot/jmaker/packages     #optional
-export JMAKER_SPECIAL_SNAP_NAME=forks                     #optional
-export JMAKER_MAINTAINER=name@domain.com                  #optional
+export JMAKER_CONTAINERS_LOCATION=zroot/jmaker/containers       #required
+export JMAKER_VOLUMES_LOCATION=zroot/jmaker/volumes             #optional
+export JMAKER_PACKAGES_LOCATION=zroot/jmaker/packages           #optional
+export JMAKER_SPECIAL_SNAP_NAME=forks                           #optional
+export JMAKER_MAINTAINER=name@domain.com                        #optional
+export JMAKER_LOCAL_NETWORK_AGENT_ADDR=http://127.0.0.1:3367    #optional
 ```
 
 put in sudoers:

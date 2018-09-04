@@ -156,7 +156,8 @@ module.exports.handler = async argv => {
 
     if (argv.nat) {
 
-        let body = await prequest.get('http://127.0.0.1:3000/api/v1/free-ip');
+        let endpoint = path.join(config.localNetworkAgentAddr, '/api/v1/free-ip');
+        let body = await prequest.get(endpoint);
         body = JSON.parse(body);
         let {
             iface,

@@ -158,8 +158,6 @@ module.exports.handler = async argv => {
         unExec() { Jail.stop(manifest.name); },
     });
 
-    await submitOrUndoAll(_ => { throw new Error('123') });
-
     {
 
         let CommandClass = require('../builder-commands/workdir-command');

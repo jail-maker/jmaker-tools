@@ -17,6 +17,7 @@ class VolumeCommand extends CommandInterface {
 
         super();
         this._receiver = receiver;
+        this._mountPath = null;
 
     }
 
@@ -24,7 +25,6 @@ class VolumeCommand extends CommandInterface {
 
         const template = {
             name: undefined,
-            from: undefined,
             to: undefined,
         };
 
@@ -45,7 +45,6 @@ class VolumeCommand extends CommandInterface {
             redis,
         } = this._receiver;
 
-
         args = this._normalizeArgs(args);
 
         zfs.ensureDataset(config.volumesLocation);
@@ -56,6 +55,7 @@ class VolumeCommand extends CommandInterface {
         let src = null;
         let dst = path.resolve('/', args.to);
         let mountPath = path.join(datasetPath, dst);
+        this._mountPath = mountPath;
 
         await ensureDir(mountPath);
 
@@ -80,7 +80,15 @@ class VolumeCommand extends CommandInterface {
 
     }
 
-    async unExec() { }
+    async unExec() {
+
+        let mountPath = this._mountPath;
+        let { manifest } = this._receiver;
+
+        umount(mountPath, true);
+        await redis.del(`jmaker:mounts:${manifest.name}`);
+
+    }
 
 }
 

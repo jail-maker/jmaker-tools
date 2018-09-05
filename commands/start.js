@@ -19,6 +19,7 @@ const JailConfig = require('../libs/jails/config-file');
 const ruleViewVisitor = require('../libs/jails/rule-view-visitor');
 const Rctl = require('../libs/rctl');
 const Cpuset = require('../libs/cpuset');
+const umount = require('../libs/umount');
 const Redis = require('ioredis');
 
 module.exports.desc = 'command for start container';
@@ -67,12 +68,13 @@ module.exports.handler = async argv => {
     }
 
     let redis = new Redis;
+    let invoker = new CommandInvoker;
+    let submitOrUndoAll = invoker.submitOrUndoAll.bind(invoker);
     let dataset = path.join(config.containersLocation, argv.name);
     let datasetPath = zfs.get(dataset, 'mountpoint');
     let manifestFile = path.join(datasetPath, 'manifest.json');
     let manifest = ManifestFactory.fromJsonFile(manifestFile);
     let clonedManifest = manifest.clone();
-    let invoker = new CommandInvoker;
     let containerName = argv.name;
     let jailConfigFile = Jail.confFileByName(manifest.name);
 
@@ -97,8 +99,6 @@ module.exports.handler = async argv => {
                 from = path.resolve(from);
                 to = path.resolve(to);
 
-                console.log(from, to);
-
                 let mountPath = path.join(datasetPath, to);
 
                 await ensureDir(mountPath);
@@ -109,8 +109,22 @@ module.exports.handler = async argv => {
 
                 }
 
-                mountNullfs(from, mountPath);
-                await redis.lpush(`jmaker:mounts:${manifest.name}`, mountPath);
+                await submitOrUndoAll({
+
+                    async exec() {
+
+                        mountNullfs(from, mountPath);
+                        await redis.lpush(`jmaker:mounts:${manifest.name}`, mountPath);
+
+                    },
+                    async unExec() {
+
+                        umount(mountPath, true);
+                        await redis.del(`jmaker:mounts:${manifest.name}`);
+
+                    },
+
+                });
 
             });
 
@@ -133,8 +147,22 @@ module.exports.handler = async argv => {
 
                 let from = zfs.get(volumeDataset, 'mountpoint');
 
-                mountNullfs(from, mountPath);
-                await redis.lpush(`jmaker:mounts:${manifest.name}`, mountPath);
+                await submitOrUndoAll({
+
+                    async exec() {
+
+                        mountNullfs(from, mountPath);
+                        await redis.lpush(`jmaker:mounts:${manifest.name}`, mountPath);
+
+                    },
+                    async unExec() {
+
+                        umount(mountPath, true);
+                        await redis.del(`jmaker:mounts:${manifest.name}`);
+
+                    },
+
+                });
 
             });
 
@@ -156,8 +184,8 @@ module.exports.handler = async argv => {
 
     if (argv.nat) {
 
-        let endpoint = path.join(config.localNetworkAgentAddr, '/api/v1/free-ip');
-        let body = await prequest.get(endpoint);
+        let endpoint = `${config.localNetworkAgentAddr}/api/v1/free-ip`;
+        let body = await submitOrUndoAll(async _ => await prequest.get(endpoint));
         body = JSON.parse(body);
         let {
             iface,
@@ -177,7 +205,12 @@ module.exports.handler = async argv => {
     jailConfig.accept(ruleViewVisitor);
     jailConfig.save(jailConfigFile);
 
-    Jail.start(manifest.name);
+    await submitOrUndoAll({
+
+        exec() { Jail.start(manifest.name); },
+        unExec() { Jail.stop(manifest.name); },
+
+    });
 
     for (let index in manifest.starting) {
 
@@ -196,56 +229,11 @@ module.exports.handler = async argv => {
             args,
         });
 
-        await invoker.submitOrUndoAll(command);
+        await submitOrUndoAll(command);
 
     }
 
     let jailInfo = Jail.getInfo(manifest.name);
-
-    // if (manifest.quota) zfs.set(dataset, 'quota', manifest.quota);
-
-    // console.log('rctl... ');
-    // let rctlObj = new Rctl({
-    //     rulset: manifest.rctl,
-    //     jailName: manifest.name
-    // });
-
-    // await invoker.submitOrUndoAll(rctlObj);
-    // console.log('done\n');
-
-
-    // if (manifest.cpus) {
-
-    //     let cpus = parseInt(manifest.cpus);
-    //     let osCpus = os.cpus().length;
-    //     cpus = cpus < osCpus ? cpus : osCpus;
-
-    //     if (cpus === 1) manifest.cpuset = '0';
-    //     else manifest.cpuset = `0-${cpus - 1}`;
-
-    // }
-
-    // if (manifest.cpuset !== false) {
-
-    //     console.log('cpuset... ');
-
-    //     try {
-
-    //         let cpuset = new Cpuset({
-    //             jid: jailInfo.jid, value: manifest.cpuset 
-    //         });
-    //         await invoker.submitOrUndoAll(cpuset);
-
-    //     } catch (error) {
-
-    //         await invoker.undoAll();
-    //         throw error;
-
-    //     }
-
-    //     console.log('done\n');
-
-    // }
 
     {
         let payload = {
@@ -260,4 +248,3 @@ module.exports.handler = async argv => {
     await redis.disconnect();
 
 }
-

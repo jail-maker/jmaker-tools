@@ -9,11 +9,22 @@
 - node >= 9.1
 - yarn
 
+## configuration:
+
+for NAT:
+```sh
+sudo sysrc cloned_interfaces+=lo1
+sudo sysrc ifconfig_lo1="inet 127.0.0.1"
+sudo sysrc firewall_enable=YES
+sudo sysrc firewall_type=open
+sudo sysrc firewall_script=/usr/local/share/jmaker-tools/ipfw-nat.sh
+```
+
 file system preparation:
 ```sh
-zfs create -p -o mountpoint=/usr/local/jmaker/containers zroot/jmaker/containers
-zfs create -p -o mountpoint=/usr/local/jmaker/volumes zroot/jmaker/volumes
-zfs create -p -o mountpoint=/usr/local/jmaker/packages zroot/jmaker/packages
+sudo zfs create -p -o mountpoint=/usr/local/jmaker/containers zroot/jmaker/containers
+sudo zfs create -p -o mountpoint=/usr/local/jmaker/volumes zroot/jmaker/volumes
+sudo zfs create -p -o mountpoint=/usr/local/jmaker/packages zroot/jmaker/packages
 ```
 
 put in shell profile file:
@@ -45,7 +56,6 @@ sendmail_enable="NO"
 rpcbind_enable="NO"
 ```
 
-## install:
+## building:
 1. clone and change directory project
 2. install dependencies `$ yarn`
-

@@ -9,13 +9,28 @@ class CommandInvoker {
 
     }
 
+    _wrapFn(fn) {
+
+        return {
+            exec() { return fn(); },
+            unExec() {},
+        }
+
+    }
+
     async submit(command) {
 
         try {
 
+            if (typeof(command) === 'function') {
+
+                command = this._wrapFn(command);
+
+            }
+
             this._undoCommands = [];
             this._commands.push(command);
-            await command.exec();
+            return await command.exec();
 
         } catch (error) {
 
@@ -31,7 +46,7 @@ class CommandInvoker {
 
         try {
 
-            await this.submit(command);
+            return await this.submit(command);
 
         } catch (error) {
 
@@ -60,7 +75,7 @@ class CommandInvoker {
 
         let command = this._undoCommands.pop();
         this._commands.push(command);
-        await command.exec();
+        return await command.exec();
 
     }
 

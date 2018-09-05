@@ -1,7 +1,7 @@
 'use strict';
 
 const { spawnSync } = require('child_process');
-const { ensureDir } = require('fs-extra');
+const { ensureDir, copy } = require('fs-extra');
 const path = require('path');
 const uuidv5 = require("uuid/v5");
 const mountNullfs = require('../libs/mount-nullfs');
@@ -75,19 +75,12 @@ class VolumeCommand extends CommandInterface {
 
         this._mountPath = mountPath;
 
-        process.on('exit',  _ => umount(this._mountPath, true));
-        process.on('SIGINT', _ => umount(this._mountPath, true));
-        process.on('SIGTERM', _ => umount(this._mountPath, true));
-
         mountNullfs(src, mountPath);
+        process.on('exit',  _ => umount(this._mountPath, true));
 
     }
 
-    async unExec() {
-
-        if (this._mountPath) umount(this._mountPath, true);
-
-    }
+    async unExec() { }
 
 }
 

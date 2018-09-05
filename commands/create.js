@@ -46,6 +46,7 @@ module.exports.handler = async argv => {
     let manifest = ManifestFactory.fromYamlFile(file);
     let clonedManifest = manifest.clone();
     let invoker = new CommandInvoker;
+    let submitOrUndoAll = invoker.submitOrUndoAll.bind(invoker);
     let newDataset = path.join(config.containersLocation, manifest.name);
 
     if (zfs.has(newDataset))
@@ -70,7 +71,7 @@ module.exports.handler = async argv => {
 
     if (!zfs.has(fromDataset)) {
 
-        console.log(`dataset for container "${from}" not exists.`)
+        console.log(`dataset for container "${manifest.from}" not exists.`)
         console.log(`fetching container "${manifest.from}" from remote repository.`)
 
         let result = spawnSync('pkg', [
@@ -83,20 +84,42 @@ module.exports.handler = async argv => {
             throw new Error(msg);
 
         }
-    
+
     }
 
     zfs.ensureSnapshot(fromDataset, config.specialSnapName);
-    zfs.clone(fromDataset, config.specialSnapName, newDataset);
+    await submitOrUndoAll({
+        exec() {
+            zfs.clone(fromDataset, config.specialSnapName, newDataset);
+        },
+        unExec() {
+            zfs.destroy(newDataset);
+        },
+    });
 
-    let datasetPath = zfs.get(newDataset, 'mountpoint');
-    let fromDatasetPath = zfs.get(fromDataset, 'mountpoint');
+    let [
+
+        datasetPath,
+        fromDatasetPath,
+
+    ] = await submitOrUndoAll(_ => {
+
+        return [
+            zfs.get(newDataset, 'mountpoint'),
+            zfs.get(fromDataset, 'mountpoint'),
+        ];
+
+    });
+
     let manifestOutPath = path.join(datasetPath, MANIFEST_NAME);
     let fromManifestOutPath = path.join(fromDatasetPath, MANIFEST_NAME);
     let srcContextPath = path.resolve(argv.context);
     let contextPath = path.join(datasetPath, '/media/context');
-    let fromManifest = ManifestFactory.fromJsonFile(fromManifestOutPath);
     let jailConfigFile = Jail.confFileByName(manifest.name);
+    let fromManifest = await submitOrUndoAll(_ => {
+        return ManifestFactory.fromJsonFile(fromManifestOutPath);
+    });
+
 
     {
 
@@ -124,9 +147,18 @@ module.exports.handler = async argv => {
     jailConfig.save(jailConfigFile);
 
     await fse.ensureDir(contextPath);
-    mountNullfs(srcContextPath, contextPath, ['ro']);
 
-    Jail.start(manifest.name);
+    await submitOrUndoAll(_ => {
+        mountNullfs(srcContextPath, contextPath, ['ro']); 
+        process.on('exit', _ => umount(contextPath, true));
+    });
+
+    await submitOrUndoAll({
+        exec() { Jail.start(manifest.name); },
+        unExec() { Jail.stop(manifest.name); },
+    });
+
+    await submitOrUndoAll(_ => { throw new Error('123') });
 
     {
 
@@ -140,7 +172,7 @@ module.exports.handler = async argv => {
             args: manifest.workdir,
         });
 
-        await invoker.submitOrUndoAll(command);
+        await submitOrUndoAll(command);
 
     }
 
@@ -161,12 +193,11 @@ module.exports.handler = async argv => {
             args,
         });
 
-        await invoker.submitOrUndoAll(command);
+        await submitOrUndoAll(command);
 
     }
 
     Jail.stop(manifest.name);
-    umount(contextPath, true);
     manifest.toFile(manifestOutPath);
     zfs.snapshot(newDataset, config.specialSnapName);
 

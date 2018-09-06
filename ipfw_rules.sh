@@ -8,7 +8,9 @@
 
 ext_if=re0 # replace it with your external interface
 int_if=lo1 # replace it with your internal interface
+network=127.0.0.1/8 # replace it with your private network
 
 ipfw nat 45 config if ${ext_if}
+ipfw add 10 nat 45 ip from any to me via ${ext_if}
+ipfw add 20 nat 45 ip from ${network} to any via ${ext_if}
 ipfw add 20 allow ip from any to any via ${int_if}
-ipfw add 10 nat 45 ip from any to any via ${ext_if}

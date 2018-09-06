@@ -1,5 +1,6 @@
 share/jmaker-tools/README.md
 share/jmaker-tools/index.js
+share/jmaker-tools/ipfw_rules.sh
 share/jmaker-tools/package.json
 share/jmaker-tools/yarn.lock
 
@@ -704,9 +705,9 @@ share/jmaker-tools/node_modules/http-signature/lib/utils.js
 share/jmaker-tools/node_modules/http-signature/lib/verify.js
 
 
-share/jmaker-tools/node_modules/http-signature/node_modules/.bin/sshpk-conv
+share/jmaker-tools/node_modules/http-signature/node_modules/.bin/sshpk-conv 
 share/jmaker-tools/node_modules/http-signature/node_modules/.bin/sshpk-sign 
-share/jmaker-tools/node_modules/http-signature/node_modules/.bin/sshpk-verify
+share/jmaker-tools/node_modules/http-signature/node_modules/.bin/sshpk-verify 
 
 share/jmaker-tools/node_modules/invert-kv/index.js
 share/jmaker-tools/node_modules/invert-kv/package.json

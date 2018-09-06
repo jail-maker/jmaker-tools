@@ -55,29 +55,46 @@ module.exports.builder = yargs => {
             default: [],
             describe: 'mount volume in container.\n Example: my-volume:/mnt/volume'
         })
+        .option('nat', {
+            type: 'boolean',
+            default: false,
+            describe: 'getting ip via local network agent.',
+        })
         .demandOption(['from']);
 
 }
 
 module.exports.handler = async argv => {
 
+    let invoker = new CommandInvoker;
+    let submitOrUndoAll = invoker.submitOrUndoAll.bind(invoker);
     let commandArgs = argv._.slice(1);
     let containerName = argv.n ? argv.n : uuid4();
     let datasetFrom = path.join(config.containersLocation, argv.from);
     let datasetNew = path.join(config.containersLocation, containerName);
 
-    zfs.clone(datasetFrom, config.specialSnapName, datasetNew);
+    await submitOrUndoAll({
+        exec() {
+            zfs.clone(datasetFrom, config.specialSnapName, datasetNew);
+        },
+        unExec() {
+            zfs.destroy(datasetNew);
+        }
+    });
 
     let dataset = datasetNew;
     let datasetPath = zfs.get(dataset, 'mountpoint');
     let manifestFile = path.join(datasetPath, 'manifest.json');
     let manifest = ManifestFactory.fromJsonFile(manifestFile);
 
+    console.log(manifest);
+    await invoker.undoAll();
+    process.exit();
+
     manifest.name = containerName;
 
     let jailConfigFile = Jail.confFileByName(manifest.name);
     let clonedManifest = manifest.clone();
-    let invoker = new CommandInvoker;
     let redis = new Redis;
 
     manifest.toFile(manifestFile);
@@ -103,8 +120,6 @@ module.exports.handler = async argv => {
                 from = path.resolve(from);
                 to = path.resolve(to);
 
-                console.log(from, to);
-
                 let mountPath = path.join(datasetPath, to);
 
                 await ensureDir(mountPath);
@@ -115,8 +130,22 @@ module.exports.handler = async argv => {
 
                 }
 
-                mountNullfs(from, mountPath);
-                await redis.lpush(`jmaker:mounts:${manifest.name}`, mountPath);
+                await submitOrUndoAll({
+
+                    async exec() {
+
+                        mountNullfs(from, mountPath);
+                        await redis.lpush(`jmaker:mounts:${manifest.name}`, mountPath);
+
+                    },
+                    async unExec() {
+
+                        umount(mountPath, true);
+                        await redis.del(`jmaker:mounts:${manifest.name}`);
+
+                    },
+
+                });
 
             });
 
@@ -139,8 +168,22 @@ module.exports.handler = async argv => {
 
                 let from = zfs.get(volumeDataset, 'mountpoint');
 
-                mountNullfs(from, mountPath);
-                await redis.lpush(`jmaker:mounts:${manifest.name}`, mountPath);
+                await submitOrUndoAll({
+
+                    async exec() {
+
+                        mountNullfs(from, mountPath);
+                        await redis.lpush(`jmaker:mounts:${manifest.name}`, mountPath);
+
+                    },
+                    async unExec() {
+
+                        umount(mountPath, true);
+                        await redis.del(`jmaker:mounts:${manifest.name}`);
+
+                    },
+
+                });
 
             });
 

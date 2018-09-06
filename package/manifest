@@ -4,7 +4,7 @@
     "desc": "",
     "origin": "sysutils/jmaker-tools",
     "comment": "",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "maintainer": "",
     "prefix": "/usr/local",
     "deps": {
@@ -19,6 +19,10 @@
         "redis": {
             "version": ">=3.2.11",
             "origin": "databases/redis"
+        },
+        "rsync": {
+            "version": ">=3.1.3",
+            "origin": "net/rsync"
         }
     }
 }

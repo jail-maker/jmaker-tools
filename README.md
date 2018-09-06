@@ -17,7 +17,7 @@ sudo sysrc cloned_interfaces+=lo1
 sudo sysrc ifconfig_lo1="inet 127.0.0.1"
 sudo sysrc ifconfig_lo1_alias0="inet 127.0.0.2"
 sudo sysrc firewall_enable=YES
-sudo sysrc firewall_type=open
+sudo sysrc firewall_nat_enable=YES
 sudo sysrc firewall_script=/usr/local/etc/ipfw_rules.sh
 ```
 

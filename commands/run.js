@@ -87,10 +87,6 @@ module.exports.handler = async argv => {
     let manifestFile = path.join(datasetPath, 'manifest.json');
     let manifest = ManifestFactory.fromJsonFile(manifestFile);
 
-    console.log(manifest);
-    await invoker.undoAll();
-    process.exit();
-
     manifest.name = containerName;
 
     let jailConfigFile = Jail.confFileByName(manifest.name);
@@ -203,6 +199,22 @@ module.exports.handler = async argv => {
 
     }
 
+    if (argv.nat) {
+
+        let endpoint = `${config.localNetworkAgentAddr}/api/v1/free-ip`;
+        let body = await submitOrUndoAll(async _ => await prequest.get(endpoint));
+        body = JSON.parse(body);
+        let {
+            iface,
+            ip,
+        } = body;
+
+        console.log(body, iface, ip);
+
+        manifest.rules['ip4.addr'] = `${iface}|${ip}`;
+
+    }
+
     manifest.rules.persist = true;
     manifest.rules.path = datasetPath;
 
@@ -210,7 +222,37 @@ module.exports.handler = async argv => {
     jailConfig.accept(ruleViewVisitor);
     jailConfig.save(jailConfigFile);
 
-    Jail.start(manifest.name);
+    await submitOrUndoAll({
+
+        exec() { Jail.start(manifest.name); },
+        unExec() { Jail.stop(manifest.name); },
+
+    });
+
+    let jailInfo = Jail.getInfo(manifest.name);
+
+    await submitOrUndoAll({
+
+        async exec() { 
+            let payload = {
+                eventName: 'started',
+                info: jailInfo,
+                manifest,
+            }
+
+            await redis.publish('jmaker:containers:started', JSON.stringify(payload));
+        },
+        async unExec() {
+            let payload = {
+                eventName: 'stoped',
+                info: jailInfo,
+                manifest,
+            }
+
+            await redis.publish('jmaker:containers:stoped', JSON.stringify(payload));
+        },
+
+    });
 
     let commandPath = `../launcher-commands/run-command`;
     let CommandClass = require(commandPath);
@@ -223,21 +265,10 @@ module.exports.handler = async argv => {
         args: commandArgs,
     });
 
-    await invoker.submitOrUndoAll(command);
+    await submitOrUndoAll(command);
 
-    let jailInfo = Jail.getInfo(manifest.name);
-
-    {
-        let payload = {
-            eventName: 'started',
-            info: jailInfo,
-            manifest,
-        }
-
-        await redis.publish('jmaker:containers:started', JSON.stringify(payload));
-    }
+    if (argv.rm) { await invoker.undoAll(); }
 
     await redis.disconnect();
 
 }
-

@@ -9,6 +9,7 @@ class ManifestFactory {
     static fromJsonFile(file) {
 
         let manifest = new Manifest;
+        let clearManifest = new Manifest;
         let buffer = fs.readFileSync(file);
         let data = JSON.parse(buffer.toString());
 
@@ -22,6 +23,7 @@ class ManifestFactory {
         });
 
         Object.assign(manifest.rules, data);
+        manifest.rules = Object.assign(clearManifest.rules, manifest.rules);
         return manifest;
 
     }
@@ -29,6 +31,7 @@ class ManifestFactory {
     static fromYamlFile(file) {
 
         let manifest = new Manifest;
+        let clearManifest = new Manifest;
         let buffer = fs.readFileSync(file);
         let data = yaml.safeLoad(buffer);
 
@@ -42,6 +45,7 @@ class ManifestFactory {
         });
 
         Object.assign(manifest.rules, data);
+        manifest.rules = Object.assign(clearManifest.rules, manifest.rules);
         return manifest;
 
     }
@@ -49,6 +53,7 @@ class ManifestFactory {
     static fromJsonData(data) {
 
         let manifest = new Manifest;
+        let clearManifest = new Manifest;
         let keys = Object.keys(manifest);
 
         keys.forEach(key => {
@@ -59,6 +64,7 @@ class ManifestFactory {
         });
 
         Object.assign(manifest.rules, data);
+        manifest.rules = Object.assign(clearManifest.rules, manifest.rules);
         return manifest;
 
     }

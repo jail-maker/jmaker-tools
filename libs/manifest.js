@@ -28,7 +28,7 @@ class Manifest {
             'allow.raw_sockets': true,
             'allow.socket_af': true,
             'allow.sysvipc': true,
-            'host.hostname': "${name}.net",
+            'host.hostname': "${name}.local.net",
             'exec.prestart': [],
             'exec.poststop': [],
             'exec.start': [],

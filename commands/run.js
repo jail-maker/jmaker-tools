@@ -6,6 +6,7 @@ const { ensureDir, copy, pathExists } = require('fs-extra');
 const path = require('path');
 const yargs = require('yargs');
 const uuid4 = require('uuid/v4');
+const prequest = require('request-promise-native');
 const { spawn, spawnSync } = require('child_process');
 const zfs = require('../libs/zfs');
 const ManifestFactory = require('../libs/manifest-factory');

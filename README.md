@@ -36,6 +36,8 @@ export JMAKER_PACKAGES_LOCATION=zroot/jmaker/packages           #optional
 export JMAKER_SPECIAL_SNAP_NAME=forks                           #optional
 export JMAKER_MAINTAINER=name@domain.com                        #optional
 export JMAKER_LOCAL_NETWORK_AGENT_ADDR=http://127.0.0.1:3367    #optional
+export JMAKER_DNS_RESOLVER_TYPE=auto                            #optional
+export JMAKER_DNS_RESOLVER_ADDR=127.0.0.2                       #optional
 ```
 
 put in sudoers:

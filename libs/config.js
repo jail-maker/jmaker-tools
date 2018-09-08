@@ -22,6 +22,8 @@ class Config {
         this.packagesLocation = "zroot/jmaker/packages";
         this.specialSnapName = "forks";
         this.localNetworkAgentAddr = "http://127.0.0.1:3367";
+        this.dnsResolverType = "auto";
+        this.dnsResolverAddr = "127.0.0.2";
 
         this._loadEnv();
 

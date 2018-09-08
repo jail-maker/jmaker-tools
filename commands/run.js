@@ -96,9 +96,6 @@ module.exports.handler = async argv => {
 
     manifest.toFile(manifestFile);
 
-    zfs.ensureSnapshot(dataset, config.specialSnapName);
-    zfs.rollback(dataset, config.specialSnapName);
-
     argv.rules
         .forEach(item => {
 
@@ -187,16 +184,26 @@ module.exports.handler = async argv => {
         await Promise.all(promises);
     }
 
-    if (manifest['resolv-sync']) {
+    switch (config.dnsResolverType) {
 
-        console.log('resolv.conf sync... ');
+        case "auto":
 
-        fs.copyFileSync(
-            '/etc/resolv.conf',
-            `${datasetPath}/etc/resolv.conf`
-        );
+            fs.copyFileSync(
+                '/etc/resolv.conf',
+                `${datasetPath}/etc/resolv.conf`
+            );
+            break;
 
-        console.log('done');
+        case "static":
+
+            let content = `nameserver ${config.dnsResolverAddr}`;
+            fs.writeFileSync(`${datasetPath}/etc/resolv.conf`, content);
+            break;
+
+        default:
+
+            throw new Error("dns resolver type is not set.");
+            break;
 
     }
 

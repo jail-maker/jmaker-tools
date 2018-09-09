@@ -1,20 +1,16 @@
 ---
-name: "tech_ru"
+name: "jmaker-tools"
 from: "freebsd111"
-host.hostname: 'tech29.ru'
 
 service: { proto: 'http', port: 80 }
 services:
   www: { proto: 'http', port: 80 }
   ssh: { proto: 'tcp', port: 22 }
 
-cpus: 1
-
 building:
 
   - workdir: "/usr/home"
   - run: "env"
-  - run: "ls -a"
   - run: "ls -a /media/context"
 
   - workdir: "/usr/local/etc/pkg/repos"
@@ -28,6 +24,8 @@ building:
   - workdir: "/"
 
 starting:
+
+  - run: "env"
 
   - env:
       ASSUME_ALWAYS_YES: "yes"

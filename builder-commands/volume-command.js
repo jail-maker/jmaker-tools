@@ -46,6 +46,7 @@ class VolumeCommand extends CommandInterface {
         zfs.ensureDataset(config.volumesLocation);
 
         args = this._normalizeArgs(args);
+        manifest.volumes.push(args);
 
         if (args.to === undefined)
             throw new Error('volume argument "to" is undefined.');

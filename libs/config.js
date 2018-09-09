@@ -7,6 +7,7 @@ const { camel } = require('case');
 const ENV_PREFIX = 'JMAKER';
 const ENV_REQUIRED = [
     'JMAKER_CONTAINERS_LOCATION',
+    'JMAKER_SPECIAL_SNAP_NAME',
 ];
 
 class Config {

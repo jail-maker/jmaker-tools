@@ -20,6 +20,7 @@ class Manifest {
         this.starting = [];
         this.quota = '';
         this.env = {};
+        this.volumes = [];
         this['resolv-sync'] = true;
         this.rules = {
             'mount.devfs': true,

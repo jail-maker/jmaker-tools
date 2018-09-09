@@ -25,7 +25,7 @@ class RunCommand extends CommandInterface {
         } = this._receiver;
 
         let env = Object.assign({}, process.env, manifest.env);
-        let command = args;
+        let command = Array.isArray(args) ? args.join(' ') : args;
 
         await (new Promise((res, rej) => {
 

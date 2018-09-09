@@ -16,6 +16,7 @@ const Jail = require('../libs/jail');
 const JailConfig = require('../libs/jails/config-file');
 const ruleViewVisitor = require('../libs/jails/rule-view-visitor');
 const mountNullfs = require('../libs/mount-nullfs');
+const umount = require('../libs/umount');
 const Rctl = require('../libs/rctl');
 const Cpuset = require('../libs/cpuset');
 const Redis = require('ioredis');
@@ -70,6 +71,8 @@ module.exports.handler = async argv => {
     let invoker = new CommandInvoker;
     let submitOrUndoAll = invoker.submitOrUndoAll.bind(invoker);
     let commandArgs = argv._.slice(1);
+    // console.log(commandArgs);
+    // process.exit();
     let containerName = argv.n ? argv.n : uuid4();
     let datasetFrom = path.join(config.containersLocation, argv.from);
     let datasetNew = path.join(config.containersLocation, containerName);
@@ -147,18 +150,27 @@ module.exports.handler = async argv => {
     }
 
     {
-        let promises = argv.volume
-            .map(async item => {
+        let volumes = argv.volume
+            .map(item => {
 
-                let [volume, to] = item.split(':');
+                let [name, to] = item.split(':');
+                return {name, to};
+
+            });
+
+        volumes = manifest.volumes.concat(volumes);
+
+        let promises = volumes
+            .map(async ({name, to}) => {
+
                 to = path.resolve(to);
                 let mountPath = path.join(datasetPath, to);
 
                 await ensureDir(mountPath);
 
-                let volumeDataset = path.join(config.volumesLocation, volume);
+                let volumeDataset = path.join(config.volumesLocation, name);
                 if (!zfs.has(volumeDataset)) 
-                    throw new Error(`volume "${volume}" not found.`);
+                    throw new Error(`volume "${name}" not found.`);
 
                 let from = zfs.get(volumeDataset, 'mountpoint');
 

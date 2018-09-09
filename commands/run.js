@@ -71,8 +71,6 @@ module.exports.handler = async argv => {
     let invoker = new CommandInvoker;
     let submitOrUndoAll = invoker.submitOrUndoAll.bind(invoker);
     let commandArgs = argv._.slice(1);
-    // console.log(commandArgs);
-    // process.exit();
     let containerName = argv.n ? argv.n : uuid4();
     let datasetFrom = path.join(config.containersLocation, argv.from);
     let datasetNew = path.join(config.containersLocation, containerName);

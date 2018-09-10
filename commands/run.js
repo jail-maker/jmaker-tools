@@ -41,6 +41,11 @@ module.exports.builder = yargs => {
             type: 'string',
             describe: 'set name for new container.'
         })
+        .option('e', {
+            alias: 'env',
+            type: 'array',
+            describe: 'set environment variable.'
+        })
         .option('rm', {
             type: 'boolean',
             describe: 'remove container after run.'
@@ -99,13 +104,19 @@ module.exports.handler = async argv => {
 
     manifest.toFile(manifestFile);
 
-    argv.rules
-        .forEach(item => {
+    argv.env.forEach(env => {
 
-            let [key, value = true] = item.split('=');
-            manifest.rules[key] = value;
+        let [key, value = true] = env.split('=');
+        manifest.env[key] = value;
 
-        });
+    })
+
+    argv.rules.forEach(item => {
+
+        let [key, value = true] = item.split('=');
+        manifest.rules[key] = value;
+
+    });
 
     {
         let promises = argv.mount

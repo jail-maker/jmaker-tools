@@ -1,28 +1,22 @@
 ---
-name: "jmaker-tools"
-from: "freebsd111"
+name: pg10
+from: freebsd111
 
-service: { proto: 'http', port: 80 }
+service: { proto: http, port: 80 }
 services:
-  www: { proto: 'http', port: 80 }
-  ssh: { proto: 'tcp', port: 22 }
+  www: { proto: http, port: 80 }
+  ssh: { proto: tcp, port: 22 }
 
 building:
 
-  - workdir: "/usr/home"
-  - run: "env"
-  - run: "ls -a /media/context"
+  - workdir: /root
 
-  - workdir: "/usr/local/etc/pkg/repos"
-
-  - env:
-      ASSUME_ALWAYS_YES: "yes"
-
-  - volume: { name: "pkg", to: "/var/cache/pkg" }
-  - run: "pkg install -y -f nginx"
-
-  - workdir: "/"
+  - env: { ASSUME_ALWAYS_YES: yes }
+  - volume: { name: pkg, to: /var/cache/pkg }
+  - run: pkg install postgresql10-server
+  - run: /usr/local/etc/rc.d/postgresql oneinitdb
+  - volume: { name: pgdata, to: /var/db/postgres }
 
 starting:
 
-  - run: "service nginx onestart"
+  - run: service nginx onestart

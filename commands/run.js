@@ -181,8 +181,14 @@ module.exports.handler = async argv => {
                 await ensureDir(mountPath);
 
                 let volumeDataset = path.join(config.volumesLocation, name);
-                if (!zfs.has(volumeDataset)) 
-                    throw new Error(`volume "${name}" not found.`);
+
+                if (!zfs.has(volumeDataset)) {
+
+                    zfs.ensureDataset(volumeDataset);
+                    let src = zfs.get(volumeDataset, 'mountpoint');
+                    await copy(path.join(mountPath, '/'), path.join(src, '/'));
+
+                }
 
                 let from = zfs.get(volumeDataset, 'mountpoint');
                 let {uid, gid} = fs.statSync(mountPath);

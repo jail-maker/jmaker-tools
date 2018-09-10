@@ -4,7 +4,7 @@
     "desc": "",
     "origin": "sysutils/jmaker-tools",
     "comment": "",
-    "version": "0.0.3",
+    "version": "0.0.5",
     "maintainer": "",
     "prefix": "/usr/local",
     "deps": {

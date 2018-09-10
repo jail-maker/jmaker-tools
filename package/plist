@@ -32,9 +32,6 @@ share/jmaker-tools/libs/diff-out.js
 share/jmaker-tools/libs/folders-diff.js
 share/jmaker-tools/libs/iface.js
 share/jmaker-tools/libs/invokers-pool.js
-share/jmaker-tools/libs/ip4addr.js
-share/jmaker-tools/libs/ip6addr.js
-share/jmaker-tools/libs/ipv6-types-addresses.js
 share/jmaker-tools/libs/jail.js
 share/jmaker-tools/libs/manifest-factory.js
 share/jmaker-tools/libs/manifest.js

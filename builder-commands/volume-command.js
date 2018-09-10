@@ -2,6 +2,7 @@
 
 const { spawnSync } = require('child_process');
 const { ensureDir, copy } = require('fs-extra');
+const fs = require('fs');
 const path = require('path');
 const uuidv5 = require("uuid/v5");
 const mountNullfs = require('../libs/mount-nullfs');
@@ -75,6 +76,9 @@ class VolumeCommand extends CommandInterface {
         }
 
         this._mountPath = mountPath;
+
+        let {uid, gid} = fs.statSync(mountPath);
+        fs.chownSync(src, uid, gid);
 
         mountNullfs(src, mountPath);
         process.on('exit',  _ => umount(this._mountPath, true));

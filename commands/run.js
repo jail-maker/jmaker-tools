@@ -2,7 +2,6 @@
 
 const os = require('os');
 const fs = require('fs');
-const fsp = fs.promises;
 const { ensureDir, copy, pathExists } = require('fs-extra');
 const path = require('path');
 const yargs = require('yargs');
@@ -186,7 +185,7 @@ module.exports.handler = async argv => {
                     throw new Error(`volume "${name}" not found.`);
 
                 let from = zfs.get(volumeDataset, 'mountpoint');
-                let {uid, gid} = await fsp.stat(mountPath);
+                let {uid, gid} = fs.statSync(mountPath);
 
                 fs.chownSync(from, uid, gid);
 

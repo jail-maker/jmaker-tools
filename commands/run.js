@@ -274,18 +274,45 @@ module.exports.handler = async argv => {
 
     });
 
-    let commandPath = `../launcher-commands/run-command`;
-    let CommandClass = require(commandPath);
-    let command = new CommandClass({
-        index: 0,
-        dataset,
-        datasetPath,
-        manifest,
-        redis,
-        args: commandArgs,
-    });
+    if (commandArgs.length) {
 
-    await submitOrUndoAll(command);
+        let commandPath = `../launcher-commands/run-command`;
+        let CommandClass = require(commandPath);
+        let command = new CommandClass({
+            index: 0,
+            dataset,
+            datasetPath,
+            manifest,
+            redis,
+            args: commandArgs,
+        });
+
+        await submitOrUndoAll(command);
+
+    } else {
+
+        for (let index in manifest.starting) {
+
+            let obj = manifest.starting[index];
+            let commandName = Object.keys(obj)[0];
+            let args = obj[commandName];
+
+            let commandPath = `../launcher-commands/${commandName}-command`;
+            let CommandClass = require(commandPath);
+            let command = new CommandClass({
+                index,
+                dataset,
+                datasetPath,
+                manifest,
+                redis,
+                args,
+            });
+
+            await submitOrUndoAll(command);
+
+        }
+
+    }
 
     if (argv.rm) { await invoker.undoAll(); }
 

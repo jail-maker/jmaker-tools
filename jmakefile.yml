@@ -25,17 +25,4 @@ building:
 
 starting:
 
-  - run: "env"
-
-  - env:
-      ASSUME_ALWAYS_YES: "yes"
-
-  - volume: { name: "pkg", to: "/var/cache/pkg" }
-  - run: "ls /mnt"
-  - run: "ls /"
-
-  - env:
-      test: "test"
-
-  - run: "env"
   - run: "service nginx onestart"

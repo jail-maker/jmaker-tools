@@ -75,6 +75,8 @@ module.exports.handler = async argv => {
     let datasetFrom = path.join(config.containersLocation, argv.from);
     let datasetNew = path.join(config.containersLocation, containerName);
 
+    zfs.ensureSnapshot(datasetFrom, config.specialSnapName);
+
     await submitOrUndoAll({
         exec() {
             zfs.clone(datasetFrom, config.specialSnapName, datasetNew);

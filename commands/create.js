@@ -30,6 +30,11 @@ module.exports.builder = yargs => {
             alias: 'manifest',
             default: './jmakefile.yml',
         })
+        .option('f', {
+            alias: 'force',
+            type: 'boolean',
+            default: false,
+        })
         .option('c', {
             alias: 'context',
             default: './',
@@ -49,8 +54,18 @@ module.exports.handler = async argv => {
     let submitOrUndoAll = invoker.submitOrUndoAll.bind(invoker);
     let newDataset = path.join(config.containersLocation, manifest.name);
 
-    if (zfs.has(newDataset))
-        throw new Error(`dataset "${manifest.name}" already exists.`);
+    if (zfs.has(newDataset) && !argv.force) {
+
+        let message = `dataset "${manifest.name}"
+        already exists, use -f for force create.`;
+
+        throw new Error(message);
+
+    } else if (zfs.has(newDataset) && argv.force) {
+
+        zfs.destroy(newDataset);
+
+    }
 
     console.log(newDataset);
 

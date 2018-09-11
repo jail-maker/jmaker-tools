@@ -28,7 +28,7 @@ class RunCommand extends CommandInterface {
         let command = Array.isArray(args) ? args.join(' ') : args;
         command = `${manifest.entry} ${command}`;
 
-        await (new Promise((res, rej) => {
+        return await (new Promise((res, rej) => {
 
             let child = spawn(
                 'jexec',
@@ -43,12 +43,13 @@ class RunCommand extends CommandInterface {
                 }
             );
 
-            child.on('close', code => {
+            child.on('exit', (code, signal) => {
 
                 if (code) {
 
                     let error = new Error(`Error execution command: "${command}".`);
                     error.exitCode = code;
+                    error.exitSignal = signal;
                     rej(error);
 
                 } else res(code);

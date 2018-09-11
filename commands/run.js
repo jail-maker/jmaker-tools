@@ -71,7 +71,7 @@ module.exports.builder = yargs => {
         })
         .option('entry', {
             type: 'string',
-            default: '',
+            default: null,
             describe: 'override entry command.',
         })
         .demandOption(['from']);
@@ -125,7 +125,7 @@ module.exports.handler = async argv => {
 
     });
 
-    if (argv.entry) manifest.entry = argv.entry;
+    if (argv.entry !== null) manifest.entry = argv.entry;
 
     {
         let promises = argv.mount

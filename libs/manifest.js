@@ -14,6 +14,7 @@ class Manifest {
         this.dependencies = [];
         this.cpus = '';
         this.cpuset = '';
+        this.entry = '';
         this.service = {};
         this.services = {};
         this.building = [];

@@ -48,13 +48,14 @@ class VolumeCommand extends CommandInterface {
         zfs.ensureDataset(config.volumesLocation);
 
         args = this._normalizeArgs(args);
-        manifest.volumes.push(args);
 
         if (args.to === undefined)
             throw new Error('volume argument "to" is undefined.');
 
         if (args.name === undefined)
             args.name = uuidv5(`${dataset} ${args.to}`, uuidv5.DNS);
+
+        manifest.volumes.push(args);
 
         let dst = args.to;
         dst = path.resolve(manifest.workdir, dst);

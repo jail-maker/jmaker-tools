@@ -69,6 +69,11 @@ module.exports.builder = yargs => {
             default: false,
             describe: 'getting ip via local network agent.',
         })
+        .option('entry', {
+            type: 'string',
+            default: '',
+            describe: 'override entry command.',
+        })
         .demandOption(['from']);
 
 }
@@ -119,6 +124,8 @@ module.exports.handler = async argv => {
         manifest.rules[key] = value;
 
     });
+
+    if (argv.entry) manifest.entry = argv.entry;
 
     {
         let promises = argv.mount

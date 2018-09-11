@@ -29,7 +29,9 @@ class RunCommand extends CommandInterface {
             args = '',
         } = this._receiver;
 
-        let command = args;
+        let entry = manifest.entry;
+
+        let command = `${manifest.entry} ${args}`;
         let env = Object.assign({}, process.env, manifest.env);
 
         this._commitName = uuidv5(index + ' ' + command, uuidv5.DNS);

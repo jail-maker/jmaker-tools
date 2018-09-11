@@ -17,6 +17,7 @@ const JailConfig = require('../libs/jails/config-file');
 const ruleViewVisitor = require('../libs/jails/rule-view-visitor');
 const mountNullfs = require('../libs/mount-nullfs');
 const umount = require('../libs/umount');
+const foldersSync = require('../libs/folders-sync');
 const Rctl = require('../libs/rctl');
 const Cpuset = require('../libs/cpuset');
 const Redis = require('ioredis');
@@ -135,7 +136,7 @@ module.exports.handler = async argv => {
 
                 if (!(await pathExists(from))) {
 
-                    await copy(path.join(mountPath, '/'), path.join(src, '/'));
+                    await foldersSync(path.join(mountPath, '/'), path.join(src, '/'));
 
                 }
 
@@ -186,7 +187,7 @@ module.exports.handler = async argv => {
 
                     zfs.ensureDataset(volumeDataset);
                     let src = zfs.get(volumeDataset, 'mountpoint');
-                    await copy(path.join(mountPath, '/'), path.join(src, '/'));
+                    await foldersSync(path.join(mountPath, '/'), path.join(src, '/'));
 
                 }
 

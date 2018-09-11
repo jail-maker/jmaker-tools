@@ -10,6 +10,7 @@ const umount = require('../libs/umount');
 const CommandInterface = require('../libs/command-interface');
 const config = require('../libs/config');
 const zfs = require('../libs/zfs');
+const foldersSync = require('../libs/folders-sync');
 
 class VolumeCommand extends CommandInterface {
 
@@ -71,9 +72,12 @@ class VolumeCommand extends CommandInterface {
 
             zfs.ensureDataset(volumeDataset);
             src = zfs.get(volumeDataset, 'mountpoint');
-            await copy(path.join(mountPath, '/'), path.join(src, '/'));
+            await foldersSync(path.join(mountPath, '/'), path.join(src, '/'));
 
         }
+
+        let {uid, gid} = fs.statSync(mountPath);
+        fs.chownSync(src, uid, gid);
 
         mountNullfs(src, mountPath);
         await redis.lpush(`jmaker:mounts:${manifest.name}`, mountPath);

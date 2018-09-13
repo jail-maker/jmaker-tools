@@ -3,11 +3,15 @@
 'use strict';
 
 const http = require('http');
-const Router = require('koa-better-router')();
+const Router = require('koa-better-router');
 const Koa = require('koa');
 
-const router = Router.loadMethods();
+const router = new Router();
+const api = new Router({ prefix: '/api/v0.0.1' });
 const app = new Koa;
+
+router.loadMethods();
+api.loadMethods();
 
 router.post('/containers/builder', async ctx => {
 
@@ -50,8 +54,6 @@ router.post('/containers/started', async ctx => {
 
 router.delete('/containers/started/:container', async ctx => {
 
-    ctx.body = body;
-    ctx.type = 'application/json';
 
 });
 
@@ -67,6 +69,8 @@ router.delete('/containers/list/:container', async ctx => {
 });
 
 
+api.extend(router);
 app.use(router.middleware());
+app.use(api.middleware());
 
 http.createServer(app.callback()).listen(3346, '127.0.0.1');

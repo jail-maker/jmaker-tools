@@ -7,6 +7,8 @@ const Router = require('koa-better-router');
 const body = require('koa-body');
 const Koa = require('koa');
 
+const createContainer = require('./actions/create-container');
+
 const router = new Router();
 const api = new Router({ prefix: '/api/v0.0.1' });
 const app = new Koa;
@@ -22,6 +24,8 @@ router.post('/containers/builder', async ctx => {
         contextPath: '',
         manifestPath: '',
     }
+
+    await createContainer(ctx.body);
 
     ctx.body = body;
     ctx.type = 'application/json';

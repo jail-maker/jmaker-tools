@@ -4,6 +4,7 @@
 
 const http = require('http');
 const Router = require('koa-better-router');
+const body = require('koa-body');
 const Koa = require('koa');
 
 const router = new Router();
@@ -28,6 +29,8 @@ router.post('/containers/builder', async ctx => {
 });
 
 router.post('/containers/started', async ctx => {
+
+    console.log(ctx.request.body);
 
     let body = {
         tty: false,
@@ -70,6 +73,7 @@ router.delete('/containers/list/:container', async ctx => {
 
 
 api.extend(router);
+app.use(body());
 app.use(router.middleware());
 app.use(api.middleware());
 

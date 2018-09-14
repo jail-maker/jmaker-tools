@@ -4,6 +4,7 @@ const path = require('path');
 const config = require('../libs/config');
 const CommandInterface = require('../libs/command-interface');
 const { spawn } = require('child_process');
+const pty = require('node-pty');
 
 class RunCommand extends CommandInterface {
 
@@ -19,6 +20,7 @@ class RunCommand extends CommandInterface {
 
         let {
             manifest,
+            tty,
             containerId,
             args = '',
             dataset,
@@ -30,29 +32,44 @@ class RunCommand extends CommandInterface {
 
         return await (new Promise((res, rej) => {
 
-            let child = spawn(
+            let child = pty.spawn(
                 'jexec',
                 [
                     manifest.name,
                     `/bin/sh`, `-c`, `cd ${manifest.workdir} && ${command}` 
                 ],
                 {
-                    env: env,
+                    name: 'xterm-color',
+                    env,
                     cwd: '/',
-                    stdio: 'inherit',
+                    cols: 80,
+                    rows: 30,
                 }
             );
 
-            child.on('exit', (code, signal) => {
+            child.on('data', async chunk => await tty.write(shunk));
 
-                if (code) {
+            tty.on('data', chunk => child.write(chunk));
+            tty.on('resize', event => {
 
-                    let error = new Error(`Error execution command: "${command}".`);
-                    error.exitCode = code;
-                    error.exitSignal = signal;
-                    rej(error);
+                let {columns, rows} = event.data;
+                child.resize(columns, rows);
 
-                } else res(code);
+            });
+
+            child.on('exit', async (code, signal) => {
+
+                let message = {
+                    name: 'exit',
+                    data: {
+                        code,
+                        signal
+                    },
+                };
+
+                await tty.sendEvent(message);
+
+                res(code);
 
             });
 

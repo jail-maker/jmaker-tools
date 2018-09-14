@@ -23,7 +23,7 @@ const MANIFEST_NAME = 'manifest.json';
 module.exports = async args => {
 
     let {
-        tty = false,
+        tty,
         force = false,
         contextPath = '',
         manifestPath = '',
@@ -113,7 +113,7 @@ module.exports = async args => {
     let manifestOutPath = path.join(datasetPath, MANIFEST_NAME);
     let fromManifestOutPath = path.join(fromDatasetPath, MANIFEST_NAME);
     let srcContextPath = path.resolve(contextPath);
-    let contextPath = path.join(datasetPath, '/media/context');
+    let destContextPath = path.join(datasetPath, '/media/context');
     let jailConfigFile = Jail.confFileByName(manifest.name);
     let fromManifest = await submitOrUndoAll(_ => {
         return ManifestFactory.fromJsonFile(fromManifestOutPath);
@@ -145,11 +145,11 @@ module.exports = async args => {
     jailConfig.accept(ruleViewVisitor);
     jailConfig.save(jailConfigFile);
 
-    await fse.ensureDir(contextPath);
+    await fse.ensureDir(destContextPath);
 
     await submitOrUndoAll(_ => {
-        mountNullfs(srcContextPath, contextPath, ['ro']); 
-        process.on('exit', _ => umount(contextPath, true));
+        mountNullfs(srcContextPath, destContextPath, ['ro']); 
+        process.on('exit', _ => umount(destContextPath, true));
     });
 
     await submitOrUndoAll({
@@ -164,7 +164,7 @@ module.exports = async args => {
             index: 0,
             dataset: newDataset,
             datasetPath,
-            context: contextPath,
+            context: destContextPath,
             manifest,
             args: manifest.workdir,
         });
@@ -185,7 +185,7 @@ module.exports = async args => {
             index,
             dataset: newDataset,
             datasetPath,
-            context: contextPath,
+            context: destContextPath,
             manifest,
             args,
         });

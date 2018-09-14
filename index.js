@@ -8,6 +8,10 @@ const body = require('koa-body');
 const Koa = require('koa');
 
 const createContainer = require('./actions/create-container');
+const runContainer = require('./actions/run-container');
+
+const TTYServer = require('./libs/tty-server');
+const TTYFake = require('./libs/tty-fake');
 
 const router = new Router();
 const api = new Router({ prefix: '/api/v0.0.1' });
@@ -16,48 +20,38 @@ const app = new Koa;
 router.loadMethods();
 api.loadMethods();
 
-router.post('/containers/builder', async ctx => {
+router.post('/containers/builder', [
 
-    let body = {
-        tty: false,
-        force: false,
-        contextPath: '',
-        manifestPath: '',
+]);
+
+router.post('/containers/started', [
+    async (ctx, next) => { next(); },
+    async ctx => {
+
+        let body = ctx.request.body;
+        let { tty = null } = body;
+
+        if (tty) body.tty = await TTYServer.factory(tty);
+        else body.tty = new TTYFake;
+
+        tty = body.tty;
+
+        try {
+
+            await runContainer(body);
+
+        } catch (error) {
+
+            tty.write(error);
+
+        } finally {
+
+            tty.destructor();
+
+        }
+
     }
-
-    await createContainer(ctx.body);
-
-    ctx.body = body;
-    ctx.type = 'application/json';
-
-});
-
-router.post('/containers/started', async ctx => {
-
-    console.log(ctx.request.body);
-
-    let body = {
-        tty: false,
-        rm: false,
-        nat: false,
-        rules: {},
-        from: '',
-        name: '',
-        env: {},
-        mounts: [
-            {src: '', dest: ''},
-        ],
-        volumes: [
-            {name: '', dest: ''},
-        ],
-        entry: '',
-        command: '',
-    }
-
-    ctx.body = body;
-    ctx.type = 'application/json';
-
-});
+]);
 
 router.delete('/containers/started/:container', async ctx => {
 

@@ -7,7 +7,6 @@ const Router = require('koa-better-router');
 const body = require('koa-body');
 const Koa = require('koa');
 
-const createContainer = require('./actions/create-container');
 const runContainer = require('./actions/run-container');
 
 const TTYServer = require('./libs/tty-server');
@@ -16,6 +15,23 @@ const TTYFake = require('./libs/tty-fake');
 const router = new Router();
 const api = new Router({ prefix: '/api/v0.0.1' });
 const app = new Koa;
+const appState = require('./libs/application-state');
+
+const stopAll = async _ => {
+
+    let promises = Object.keys(appState.invokers)
+        .map(key => {
+            return appState.invokers[key].undoAll();
+        });
+
+    await Promise.all(promises);
+
+    process.exit();
+
+}
+
+process.prependListener('SIGINT', stopAll);
+process.prependListener('SIGTERM', stopAll);
 
 router.loadMethods();
 api.loadMethods();
@@ -24,8 +40,12 @@ router.post('/containers/builder', [
 
 ]);
 
+
 router.post('/containers/started', [
-    async (ctx, next) => { next(); },
+    async (ctx, next) => {
+        next(); 
+        ctx.status = 200;
+    },
     async ctx => {
 
         let body = ctx.request.body;
@@ -42,11 +62,11 @@ router.post('/containers/started', [
 
         } catch (error) {
 
-            tty.write(error);
+            await tty.write(error);
 
         } finally {
 
-            tty.destructor();
+            await tty.destructor();
 
         }
 
@@ -55,6 +75,19 @@ router.post('/containers/started', [
 
 router.delete('/containers/started/:container', async ctx => {
 
+    let container = ctx.params.container;
+    let invoker = appState.invokers[container];
+
+    if (invoker) {
+
+        await invoker.undoAll();
+        ctx.status = 200;
+
+    } else {
+
+        ctx.status = 404;
+
+    }
 
 });
 

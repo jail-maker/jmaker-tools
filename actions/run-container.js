@@ -17,6 +17,7 @@ const JailConfig = require('../libs/jails/config-file');
 const ruleViewVisitor = require('../libs/jails/rule-view-visitor');
 const mountNullfs = require('../libs/mount-nullfs');
 const umount = require('../libs/umount');
+const appState = require('../libs/application-state');
 const foldersSync = require('../libs/folders-sync');
 const Rctl = require('../libs/rctl');
 const Cpuset = require('../libs/cpuset');
@@ -52,7 +53,7 @@ module.exports = async args => {
             zfs.clone(datasetFrom, config.specialSnapName, datasetNew);
         },
         unExec() {
-            zfs.destroy(datasetNew);
+            if (rm) zfs.destroy(datasetNew);
         }
     });
 
@@ -79,11 +80,6 @@ module.exports = async args => {
             .map(async item => {
 
                 let { src, dest } = item;
-                if (!dest && src) dest = src;
-
-                src = path.resolve(src);
-                dest = path.resolve(dest);
-
                 let mountPath = path.join(datasetPath, dest);
 
                 await ensureDir(mountPath);
@@ -99,13 +95,11 @@ module.exports = async args => {
                     async exec() {
 
                         mountNullfs(src, mountPath);
-                        await redis.lpush(`jmaker:mounts:${manifest.name}`, mountPath);
 
                     },
                     async unExec() {
 
                         umount(mountPath, true);
-                        await redis.del(`jmaker:mounts:${manifest.name}`);
 
                     },
 
@@ -147,13 +141,11 @@ module.exports = async args => {
                     async exec() {
 
                         mountNullfs(from, mountPath);
-                        await redis.lpush(`jmaker:mounts:${manifest.name}`, mountPath);
 
                     },
                     async unExec() {
 
                         umount(mountPath, true);
-                        await redis.del(`jmaker:mounts:${manifest.name}`);
 
                     },
 
@@ -242,21 +234,26 @@ module.exports = async args => {
 
     });
 
-    if (commandArgs.length) {
+    await submitOrUndoAll({
+        exec() { appState.invokers[manifest.name] = invoker; },
+        unExec() { delete(appState.invokers[manifest.name]); },
+    });
+
+    if (command) {
 
         let commandPath = `../launcher-commands/run-command`;
         let CommandClass = require(commandPath);
-        let command = new CommandClass({
+        let commandObj = new CommandClass({
             index: 0,
             dataset,
             datasetPath,
             manifest,
             redis,
             tty,
-            args: commandArgs,
+            args: command,
         });
 
-        await submitOrUndoAll(command);
+        await submitOrUndoAll(commandObj);
 
     } else {
 
@@ -268,7 +265,7 @@ module.exports = async args => {
 
             let commandPath = `../launcher-commands/${commandName}-command`;
             let CommandClass = require(commandPath);
-            let command = new CommandClass({
+            let commandObj = new CommandClass({
                 index,
                 dataset,
                 datasetPath,
@@ -278,13 +275,13 @@ module.exports = async args => {
                 args,
             });
 
-            await submitOrUndoAll(command);
+            await submitOrUndoAll(commandObj);
 
         }
 
     }
 
-    if (rm) { await invoker.undoAll(); }
+    await invoker.undoAll();
 
     await redis.disconnect();
 

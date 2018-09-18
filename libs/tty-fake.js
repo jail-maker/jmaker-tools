@@ -8,7 +8,7 @@ class TTYFake extends EventEmitter {
 
     async write(chunk) {
 
-        console.log(chunk);
+        process.stdout.write(chunk);
 
     }
 

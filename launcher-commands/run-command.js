@@ -47,7 +47,7 @@ class RunCommand extends CommandInterface {
                 }
             );
 
-            child.on('data', async chunk => await tty.write(shunk));
+            child.on('data', async chunk => await tty.write(chunk));
 
             tty.on('data', chunk => child.write(chunk));
             tty.on('resize', event => {

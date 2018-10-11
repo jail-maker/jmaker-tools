@@ -36,11 +36,6 @@ process.prependListener('SIGTERM', stopAll);
 router.loadMethods();
 api.loadMethods();
 
-router.post('/containers/builder', [
-
-]);
-
-
 router.post('/containers/started', [
     async (ctx, next) => {
         next(); 
@@ -90,18 +85,6 @@ router.delete('/containers/started/:container', async ctx => {
     }
 
 });
-
-router.delete('/containers/list/:container', async ctx => {
-
-    let body = {
-        force: false,
-    };
-
-    ctx.body = body;
-    ctx.type = 'application/json';
-
-});
-
 
 api.extend(router);
 app.use(body());

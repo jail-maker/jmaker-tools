@@ -6,6 +6,7 @@ class Manifest {
 
     constructor() {
 
+        this.version = '0.0.1';
         this.name = '';
         this.from = null;
         this.workdir = '/';
@@ -15,10 +16,10 @@ class Manifest {
         this.cpus = '';
         this.cpuset = '';
         this.entry = '';
+        this.command = '';
         this.service = {};
         this.services = {};
         this.building = [];
-        this.starting = [];
         this.quota = '';
         this.env = {};
         this.volumes = [];

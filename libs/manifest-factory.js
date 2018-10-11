@@ -18,11 +18,9 @@ class ManifestFactory {
         keys.forEach(key => {
 
             if (data[key] !== undefined) manifest[key] = data[key];
-            delete(data[key]);
 
         });
 
-        Object.assign(manifest.rules, data);
         manifest.rules = Object.assign(clearManifest.rules, manifest.rules);
         return manifest;
 
@@ -40,11 +38,9 @@ class ManifestFactory {
         keys.forEach(key => {
 
             if (data[key] !== undefined) manifest[key] = data[key];
-            delete(data[key]);
 
         });
 
-        Object.assign(manifest.rules, data);
         manifest.rules = Object.assign(clearManifest.rules, manifest.rules);
         return manifest;
 
@@ -59,11 +55,9 @@ class ManifestFactory {
         keys.forEach(key => {
 
             if (data[key] !== undefined) manifest[key] = data[key];
-            delete(data[key]);
 
         });
 
-        Object.assign(manifest.rules, data);
         manifest.rules = Object.assign(clearManifest.rules, manifest.rules);
         return manifest;
 

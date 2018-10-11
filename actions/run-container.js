@@ -200,7 +200,13 @@ module.exports = async args => {
 
     let jailConfig = new JailConfig(manifest.name, manifest.rules);
     jailConfig.accept(ruleViewVisitor);
-    jailConfig.save(jailConfigFile);
+
+    await submitOrUndoAll({
+
+        exec() { jailConfig.save(jailConfigFile); },
+        unExec() { fs.unlinkSync(jailConfigFile); },
+
+    });
 
     await submitOrUndoAll({
 
@@ -239,6 +245,8 @@ module.exports = async args => {
         unExec() { delete(appState.invokers[manifest.name]); },
     });
 
+    command = command ? command : manifest.command;
+
     if (command) {
 
         let commandPath = `../launcher-commands/run-command`;
@@ -255,34 +263,9 @@ module.exports = async args => {
 
         await submitOrUndoAll(commandObj);
 
-    } else {
-
-        for (let index in manifest.starting) {
-
-            let obj = manifest.starting[index];
-            let commandName = Object.keys(obj)[0];
-            let args = obj[commandName];
-
-            let commandPath = `../launcher-commands/${commandName}-command`;
-            let CommandClass = require(commandPath);
-            let commandObj = new CommandClass({
-                index,
-                dataset,
-                datasetPath,
-                manifest,
-                redis,
-                tty,
-                args,
-            });
-
-            await submitOrUndoAll(commandObj);
-
-        }
-
     }
 
     await invoker.undoAll();
-
     await redis.disconnect();
 
 }

@@ -59,6 +59,7 @@ module.exports = async args => {
 
     let dataset = datasetNew;
     let datasetPath = zfs.get(dataset, 'mountpoint');
+    let rootFSPath = path.join(datasetPath, 'rootfs');
     let manifestFile = path.join(datasetPath, 'manifest.json');
     let manifest = ManifestFactory.fromJsonFile(manifestFile);
 
@@ -80,7 +81,7 @@ module.exports = async args => {
             .map(async item => {
 
                 let { src, dest } = item;
-                let mountPath = path.join(datasetPath, dest);
+                let mountPath = path.join(rootFSPath, dest);
 
                 await ensureDir(mountPath);
 
@@ -117,7 +118,7 @@ module.exports = async args => {
             .map(async ({name, to}) => {
 
                 to = path.resolve(to);
-                let mountPath = path.join(datasetPath, to);
+                let mountPath = path.join(rootFSPath, to);
 
                 await ensureDir(mountPath);
 
@@ -162,14 +163,14 @@ module.exports = async args => {
 
             fs.copyFileSync(
                 '/etc/resolv.conf',
-                `${datasetPath}/etc/resolv.conf`
+                `${rootFSPath}/etc/resolv.conf`
             );
             break;
 
         case "static":
 
             let content = `nameserver ${config.dnsResolverAddr}`;
-            fs.writeFileSync(`${datasetPath}/etc/resolv.conf`, content);
+            fs.writeFileSync(`${rootFSPath}/etc/resolv.conf`, content);
             break;
 
         default:
@@ -196,7 +197,7 @@ module.exports = async args => {
     }
 
     manifest.rules.persist = true;
-    manifest.rules.path = datasetPath;
+    manifest.rules.path = rootFSPath;
 
     let jailConfig = new JailConfig(manifest.name, manifest.rules);
     jailConfig.accept(ruleViewVisitor);
@@ -255,6 +256,7 @@ module.exports = async args => {
             index: 0,
             dataset,
             datasetPath,
+            rootFSPath,
             manifest,
             redis,
             tty,
